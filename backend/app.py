@@ -1,9 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pyodbc
+from flasgger import Swagger
 
 app = Flask(__name__)
+app.config['SWAGGER'] = {
+    'title': 'NASA API',
+    'uiversion': 3
+}
+# 
 CORS(app)
+swagger = Swagger(app)
+
 
 # 🔗 Conexão com SQL Server
 conn = pyodbc.connect(
@@ -69,9 +77,29 @@ criar_tabelas()
 # ======= ROTAS API ===========
 # =============================
 
-# ---- Naves ----
+# # ---- Naves ----
 @app.route('/naves', methods=['GET'])
 def get_naves():
+    """
+    Lista todas as naves
+    ---
+    tags:
+        - Naves
+    responses:
+        200:
+            description: Lista de naves
+            examples:
+                application/json: [
+                    {
+                        "id": 1,
+                        "nome": "Saturno V",
+                        "tipo": "Foguete",
+                        "fabricante": "NASA",
+                        "ano": 1967,
+                        "status": "Aposentada"
+                    }
+                ]
+    """
     cursor.execute("SELECT * FROM Naves")
     rows = cursor.fetchall()
     naves = [
@@ -83,6 +111,38 @@ def get_naves():
 
 @app.route('/naves', methods=['POST'])
 def add_nave():
+    """
+    Adiciona uma nova nave
+    ---
+    tags:      
+    - Naves
+    parameters:
+      - in: body
+        name: nave
+        description: Dados da nave a ser adicionada
+        required: true
+        schema:
+          type: object
+          properties:
+            nome:
+              type: string
+            tipo:
+              type: string
+            fabricante:
+              type: string
+            ano:
+              type: integer
+            status:
+              type: string
+    responses:
+        200:
+            description: Nave adicionada com sucesso
+            examples:
+                application/json: 
+                    message: "Nave adicionada com sucesso"
+
+        """
+        
     data = request.json
     cursor.execute("""
         INSERT INTO Naves (nome, tipo, fabricante, ano_construcao, status)
@@ -93,6 +153,23 @@ def add_nave():
 
 @app.route('/naves/<int:id>', methods=['DELETE'])
 def delete_nave(id):
+    """
+    Remove uma nave pelo ID
+    ---
+    tags:
+        - Naves
+    parameters:
+    - in: path
+      name: id
+      type: integer
+      required: true
+      description: ID da nave a ser removida
+    responses:
+        200:
+            description: Nave removida com sucesso
+            examples:
+                application/json: {"message": "Nave removida"}
+    """
     cursor.execute("DELETE FROM Naves WHERE id_nave = ?", (id,))
     conn.commit()
     return jsonify({'message': 'Nave removida'})
@@ -100,6 +177,33 @@ def delete_nave(id):
 # ---- Missoes ----
 @app.route('/missoes/<int:id_nave>', methods=['GET'])
 def get_missoes(id_nave):
+    """
+    Lista todas as missões de uma nave
+    ---
+    tags:
+        - Missoes
+    parameters:
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave para buscar as missões
+    responses:
+        200:
+            description: Lista de missões da nave
+            examples:
+                application/json: [
+                    {
+                        "id": 1,
+                        "nome": "Apollo 11",
+                        "data": "1969-07-16",
+                        "destino": "Lua",
+                        "duracao": 8,
+                        "resultado": "Sucesso",
+                        "descricao": "Primeiro pouso tripulado na Lua"
+                    }
+                ]
+    """
     cursor.execute("SELECT * FROM Missoes WHERE id_nave = ?", (id_nave,))
     rows = cursor.fetchall()
     missoes = [
@@ -112,6 +216,43 @@ def get_missoes(id_nave):
 
 @app.route('/missoes/<int:id_nave>', methods=['POST'])
 def add_missao(id_nave):
+    """
+    Adiciona uma nova missão para uma nave
+    ---
+    tags:
+        - Missoes
+    parameters:
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave relacionada à missão
+        - in: body
+          name: missao
+          description: Dados da missão a ser adicionada
+          required: true
+          schema:
+            type: object
+            properties:
+              nome:
+                type: string
+              data:
+                type: string
+                format: date
+              destino:
+                type: string
+              duracao:
+                type: integer
+              resultado:
+                type: string
+              descricao:
+                type: string
+    responses:
+        200:
+            description: Missão adicionada com sucesso
+            examples:
+                application/json: {"message": "Missão adicionada"}
+    """
     data = request.json
     cursor.execute("""
         INSERT INTO Missoes (id_nave, nome_missao, data_lancamento, destino, duracao_dias, resultado, descricao)
@@ -123,6 +264,23 @@ def add_missao(id_nave):
 
 @app.route('/missoes/<int:id>', methods=['DELETE'])
 def delete_missao(id):
+    """
+    Remove uma missão pelo ID
+    ---
+    tags:
+        - Missoes
+    parameters:
+    - in: path
+      name: id
+      type: integer
+      required: true
+      description: ID da missão a ser removida
+    responses:
+        200:
+            description: Missão removida com sucesso
+            examples:
+                application/json: {"message": "Missão removida"}
+    """
     cursor.execute("DELETE FROM Missoes WHERE id_missao = ?", (id,))
     conn.commit()
     return jsonify({'message': 'Missão removida'})

@@ -52,6 +52,7 @@ pip install -r requirements.txt
 
 ### 🔸 Executando o backend:
 ```bash
+cd backend
 python app.py
 ```
 
@@ -92,7 +93,7 @@ http://localhost:3000
 ## 📚 Documentação
 Para mais detalhes sobre a API, consulte a documentação gerada pelo Swagger:
 ```
-http://localhost:5000/swagger
+http://localhost:5000/apidocs/
 ```
 
 ## 📑 Diagrama DER
