@@ -6,7 +6,17 @@ function App() {
   const [naves, setNaves] = useState([]);
   const [missoes, setMissoes] = useState([]);
   const [naveSelecionada, setNaveSelecionada] = useState(null);
+  const [tripulantes, setTripulantes] = useState([]);
 
+const [novoTripulante, setNovoTripulante] = useState({
+  nome_tripulante: '',
+  data_de_nascimento: '',
+  genero: '',
+  nacionalidade: '',
+  competencia: '',
+  data_ingresso: '',
+  status: ''
+});
   const [novaNave, setNovaNave] = useState({
     nome: '',
     tipo: '',
@@ -24,6 +34,8 @@ function App() {
     descricao: ''
   });
 
+  
+
   // Carregar naves
   const carregarNaves = () => {
     axios.get('http://localhost:5000/naves')
@@ -34,12 +46,19 @@ function App() {
     carregarNaves();
   }, []);
 
-  // Seleciona uma nave e carrega suas missões
-  const selecionarNave = (nave) => {
-    setNaveSelecionada(nave);
-    axios.get(`http://localhost:5000/missoes/${nave.id}`)
-      .then(res => setMissoes(res.data));
-  };
+// 🔥 Carregar tripulantes da nave selecionada
+const carregarTripulantes = (idNave) => {
+  axios.get(`http://localhost:5000/tripulantes/${idNave}`)
+    .then(res => setTripulantes(res.data));
+};
+
+// 🔥 Ao selecionar uma nave, também carrega os tripulantes dela
+const selecionarNave = (nave) => {
+  setNaveSelecionada(nave);
+  axios.get(`http://localhost:5000/missoes/${nave.id}`)
+    .then(res => setMissoes(res.data));
+  carregarTripulantes(nave.id);
+};
 
   // Adicionar nave
   const adicionarNave = (e) => {
@@ -84,6 +103,28 @@ function App() {
       });
   };
 
+  // 🔥 Adicionar tripulante
+  const adicionarTripulante = (e) => {
+    e.preventDefault();
+    if (!naveSelecionada) {
+      alert("Selecione uma nave antes de adicionar um tripulante.");
+      return;
+    }
+    axios.post(`http://localhost:5000/tripulantes/${naveSelecionada.id}`, novoTripulante)
+      .then(() => {
+        carregarTripulantes(naveSelecionada.id);
+        setNovoTripulante({
+          nome_tripulante: '',
+          data_de_nascimento: '',
+          genero: '',
+          nacionalidade: '',
+          competencia: '',
+          data_ingresso: '',
+          status: ''
+        });
+      });
+  };
+
   // Remover missão
   const removerMissao = (id) => {
     axios.delete(`http://localhost:5000/missoes/${id}`)
@@ -120,6 +161,7 @@ function App() {
         </div>
 
         {/* ===== Missões ===== */}
+        <container>
         <div className="missoes">
           <h2>Missões {naveSelecionada ? `- ${naveSelecionada.nome}` : ''}</h2>
           {naveSelecionada ? (
@@ -149,10 +191,44 @@ function App() {
             <p>Selecione uma nave para ver e adicionar suas missões.</p>
           )}
         </div>
+        <h3>Adicionar Tripulante</h3>
+          <form onSubmit={adicionarTripulante}>
+            <input placeholder="Nome"
+              value={novoTripulante.nome}
+              onChange={e => setNovoTripulante({ ...novoTripulante, nome: e.target.value })}
+              required />
+            <input type="date" placeholder="Data de Nascimento"
+              value={novoTripulante.dataNascimento}
+              onChange={e => setNovoTripulante({ ...novoTripulante, dataNascimento: e.target.value })}
+              required />
+            <input placeholder="Gênero"
+              value={novoTripulante.genero}
+              onChange={e => setNovoTripulante({ ...novoTripulante, genero: e.target.value })}
+              required />
+            <input placeholder="Nacionalidade"
+              value={novoTripulante.nacionalidade}
+              onChange={e => setNovoTripulante({ ...novoTripulante, nacionalidade: e.target.value })}
+              required />
+            <input placeholder="Competência"
+              value={novoTripulante.competencia}
+              onChange={e => setNovoTripulante({ ...novoTripulante, competencia: e.target.value })}
+              required />
+            <input type="date" placeholder="Data de Ingresso"
+              value={novoTripulante.dataIngresso}
+              onChange={e => setNovoTripulante({ ...novoTripulante, dataIngresso: e.target.value })}
+              required />
+            <input placeholder="Status"
+              value={novoTripulante.status}
+              onChange={e => setNovoTripulante({ ...novoTripulante, status: e.target.value })}
+              required />
+            <button type="submit">➕ Adicionar</button>
+          </form>
+          </container>
 
       </div>
     </div>
   );
 }
+
 
 export default App;

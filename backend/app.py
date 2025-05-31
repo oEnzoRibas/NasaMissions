@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pyodbc
 from flasgger import Swagger
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SWAGGER'] = {
@@ -173,6 +174,107 @@ def delete_nave(id):
     cursor.execute("DELETE FROM Naves WHERE id_nave = ?", (id,))
     conn.commit()
     return jsonify({'message': 'Nave removida'})
+
+@app.route('/tripulantes/<int:id_nave>', methods=['GET'])
+def get_tripulantes(id_nave):
+    """
+    Lista todos os tripulantes de uma nave
+    ---
+    tags:
+        - Tripulantes
+    parameters:
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave para buscar os tripulantes
+    responses:
+        200:
+            description: Lista de tripulantes da nave
+            examples:
+                application/json: [
+                    {
+                        "id_tripulante": 1,
+                        "id_nave": 1,
+                        "nome_tripulante": "Neil Armstrong",
+                        "data_de_nascimento": "1930-08-05",
+                        "genero": "Masculino",
+                        "nacionalidade": "Americano",
+                        "competencia": "Piloto",
+                        "data_ingresso": "1962-09-17",
+                        "status": "Ativo"
+                    }
+                    ]
+    """
+    cursor.execute("SELECT * FROM Tripulantes WHERE id_nave = ?", (id_nave))
+    rows = cursor.fetchall()
+    tripulantes = [
+        {
+            'competencia': r.competencia,
+            'data_de_nascimento': r.data_de_nascimento.strftime('%Y-%m-%d') if r.data_de_nascimento else None,
+            'genero': r.genero,
+            'id_nave': r.id_nave,
+            'id_tripulante': r.id_tripulante,
+            'nacionalidade': r.nacionalidade,
+            'nome_tripulante': r.nome_tripulante,
+            'data_ingresso': r.data_ingresso.strftime('%Y-%m-%d') if r.data_ingresso else None,
+            'status': r.status
+        }
+        for r in rows
+    ]
+    return jsonify(tripulantes)
+
+@app.route('/tripulantes/<int:id_nave>', methods=['POST'])
+def add_tripulante(id_nave):
+    """
+    Adiciona um novo tripulante a uma nave
+    ---
+    tags:
+        - Tripulantes
+    parameters:
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave relacionada ao tripulante
+        - in: body
+          name: tripulante
+          description: Dados do tripulante a ser adicionado
+          required: true
+          schema:
+            type: object
+            properties:
+              nome_tripulante:
+                type: string
+              data_de_nascimento:
+                type: string
+                format: date
+              genero:
+                type: string
+              nacionalidade:
+                type: string
+              competencia:
+                type: string
+              data_ingresso:
+                type: string
+                format: date
+              status:
+                type: string
+    responses:
+        200:
+            description: Tripulante adicionado com sucesso
+            examples:
+                application/json: {"message": "Tripulante adicionado"}
+    """
+    data = request.json
+    
+    cursor.execute("""
+        INSERT INTO Tripulantes (id_nave, nome_tripulante, data_de_nascimento, genero, nacionalidade, competencia, data_ingresso, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (id_nave, data['nome_tripulante'], data['data_de_nascimento'],
+          data['genero'], data['nacionalidade'], data['competencia'], data['data_ingresso'], data['status']))
+    conn.commit()
+    return jsonify({'message': 'Tripulante adicionado'})
 
 # ---- Missoes ----
 @app.route('/missoes/<int:id_nave>', methods=['GET'])
