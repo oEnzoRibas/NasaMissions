@@ -8,9 +8,10 @@ CORS(app)
 # 🔗 Conexão com SQL Server
 conn = pyodbc.connect(
     'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=localhost;'  # Ajuste conforme sua instância
+    'SERVER=localhost\SQLEXPRESS;'
     'DATABASE=NASA_Missions;'
-    'Trusted_Connection=yes;'  # Ou mude para UID e PWD se usa login/senha
+    'UID=enzo;'
+    'PWD=123456;'
 )
 cursor = conn.cursor()
 
