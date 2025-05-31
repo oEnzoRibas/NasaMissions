@@ -38,7 +38,7 @@ Projeto desenvolvido para a disciplina de Banco de Dados, utilizando SQL Server,
 1. Abra o **SQL Server Management Studio**.
 2. Execute o script abaixo para criar o banco e as tabelas:
 
-[👉 Script SQL completo aqui](./database/script.sql)  
+[👉 Script SQL completo aqui](./database/nasaMissions_script.sql)  
 
 ---
 
