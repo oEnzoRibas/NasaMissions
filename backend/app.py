@@ -14,55 +14,42 @@ CORS(app)
 swagger = Swagger(app)
 
 
-# 🔗 Conexão com SQL Server
-conn = pyodbc.connect(
-    'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=localhost\SQLEXPRESS;'
-    'DATABASE=NASA_Missions;'
-    'UID=enzo;'
-    'PWD=123456;'
+# 🔗 Conexão com PGSQL
+import psycopg2
+
+conn = psycopg2.connect(
+    host="localhost",
+    database="NASA_Missions",
+    user="enzo",
+    password="123456"
 )
 cursor = conn.cursor()
 
 # 🚀 Função para criar as tabelas se não existirem
 def criar_tabelas():
     try:
-        # Cria tabela Naves
         cursor.execute('''
-            IF NOT EXISTS (
-                SELECT * FROM INFORMATION_SCHEMA.TABLES 
-                WHERE TABLE_NAME = 'Naves'
-            )
-            BEGIN
-                CREATE TABLE Naves (
-                    id_nave INT PRIMARY KEY IDENTITY(1,1),
-                    nome VARCHAR(100) NOT NULL,
-                    tipo VARCHAR(50) NOT NULL,
-                    fabricante VARCHAR(100) NOT NULL,
-                    ano_construcao INT NOT NULL,
-                    status VARCHAR(30) NOT NULL
-                )
-            END
+            CREATE TABLE IF NOT EXISTS Naves (
+                id_nave SERIAL PRIMARY KEY,
+                nome VARCHAR(100) NOT NULL,
+                tipo VARCHAR(50) NOT NULL,
+                fabricante VARCHAR(100) NOT NULL,
+                ano_construcao INT NOT NULL,
+                status VARCHAR(30) NOT NULL
+            );
         ''')
 
-        # Cria tabela Missoes
         cursor.execute('''
-            IF NOT EXISTS (
-                SELECT * FROM INFORMATION_SCHEMA.TABLES 
-                WHERE TABLE_NAME = 'Missoes'
-            )
-            BEGIN
-                CREATE TABLE Missoes (
-                    id_missao INT PRIMARY KEY IDENTITY(1,1),
-                    id_nave INT FOREIGN KEY REFERENCES Naves(id_nave) ON DELETE CASCADE,
-                    nome_missao VARCHAR(100) NOT NULL,
-                    data_lancamento DATE NOT NULL,
-                    destino VARCHAR(100) NOT NULL,
-                    duracao_dias INT NOT NULL,
-                    resultado VARCHAR(50) NOT NULL,
-                    descricao VARCHAR(255)
-                )
-            END
+            CREATE TABLE IF NOT EXISTS Missoes (
+                id_missao SERIAL PRIMARY KEY,
+                id_nave INT REFERENCES Naves(id_nave) ON DELETE CASCADE,
+                nome_missao VARCHAR(100) NOT NULL,
+                data_lancamento DATE NOT NULL,
+                destino VARCHAR(100) NOT NULL,
+                duracao_dias INT NOT NULL,
+                resultado VARCHAR(50) NOT NULL,
+                descricao VARCHAR(255)
+            );
         ''')
 
         conn.commit()
