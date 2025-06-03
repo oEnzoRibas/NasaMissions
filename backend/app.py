@@ -1,31 +1,26 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import pyodbc
 from flasgger import Swagger
 from datetime import datetime
+import psycopg2
 
 app = Flask(__name__)
 app.config['SWAGGER'] = {
     'title': 'NASA API',
     'uiversion': 3
 }
-# 
 CORS(app)
 swagger = Swagger(app)
 
-
-# 🔗 Conexão com PGSQL
-import psycopg2
-
+# Conexão com PostgreSQL
 conn = psycopg2.connect(
     host="localhost",
-    database="NASA_Missions",
-    user="enzo",
+    database="nasa_missions",
+    user="postgres",
     password="123456"
 )
 cursor = conn.cursor()
 
-# 🚀 Função para criar as tabelas se não existirem
 def criar_tabelas():
     try:
         cursor.execute('''
@@ -52,20 +47,30 @@ def criar_tabelas():
             );
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS Tripulantes (
+                id_tripulante SERIAL PRIMARY KEY,
+                id_nave INT REFERENCES Naves(id_nave) ON DELETE CASCADE,
+                nome_tripulante VARCHAR(100) NOT NULL,
+                data_de_nascimento DATE,
+                genero VARCHAR(20),
+                nacionalidade VARCHAR(50),
+                competencia VARCHAR(100),
+                data_ingresso DATE,
+                status VARCHAR(30)
+            );
+        ''')
+
         conn.commit()
         print("🛠️ Tabelas criadas/verificadas com sucesso!")
 
     except Exception as e:
         print("❌ Erro na criação das tabelas:", e)
 
-# 🔥 Chamando a função de migration
 criar_tabelas()
 
-# =============================
-# ======= ROTAS API ===========
-# =============================
+# ===== ROTAS API =====
 
-# # ---- Naves ----
 @app.route('/naves', methods=['GET'])
 def get_naves():
     """
@@ -91,8 +96,7 @@ def get_naves():
     cursor.execute("SELECT * FROM Naves")
     rows = cursor.fetchall()
     naves = [
-        {'id': r.id_nave, 'nome': r.nome, 'tipo': r.tipo,
-         'fabricante': r.fabricante, 'ano': r.ano_construcao, 'status': r.status}
+        {'id': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano': r[4], 'status': r[5]}
         for r in rows
     ]
     return jsonify(naves)
@@ -128,13 +132,11 @@ def add_nave():
             examples:
                 application/json: 
                     message: "Nave adicionada com sucesso"
-
-        """
-        
+    """
     data = request.json
     cursor.execute("""
         INSERT INTO Naves (nome, tipo, fabricante, ano_construcao, status)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
     """, (data['nome'], data['tipo'], data['fabricante'], data['ano'], data['status']))
     conn.commit()
     return jsonify({'message': 'Nave adicionada com sucesso'})
@@ -158,7 +160,7 @@ def delete_nave(id):
             examples:
                 application/json: {"message": "Nave removida"}
     """
-    cursor.execute("DELETE FROM Naves WHERE id_nave = ?", (id,))
+    cursor.execute("DELETE FROM Naves WHERE id_nave = %s", (id,))
     conn.commit()
     return jsonify({'message': 'Nave removida'})
 
@@ -178,34 +180,20 @@ def get_tripulantes(id_nave):
     responses:
         200:
             description: Lista de tripulantes da nave
-            examples:
-                application/json: [
-                    {
-                        "id_tripulante": 1,
-                        "id_nave": 1,
-                        "nome_tripulante": "Neil Armstrong",
-                        "data_de_nascimento": "1930-08-05",
-                        "genero": "Masculino",
-                        "nacionalidade": "Americano",
-                        "competencia": "Piloto",
-                        "data_ingresso": "1962-09-17",
-                        "status": "Ativo"
-                    }
-                    ]
     """
-    cursor.execute("SELECT * FROM Tripulantes WHERE id_nave = ?", (id_nave))
+    cursor.execute("SELECT * FROM Tripulantes WHERE id_nave = %s", (id_nave,))
     rows = cursor.fetchall()
     tripulantes = [
         {
-            'competencia': r.competencia,
-            'data_de_nascimento': r.data_de_nascimento.strftime('%Y-%m-%d') if r.data_de_nascimento else None,
-            'genero': r.genero,
-            'id_nave': r.id_nave,
-            'id_tripulante': r.id_tripulante,
-            'nacionalidade': r.nacionalidade,
-            'nome_tripulante': r.nome_tripulante,
-            'data_ingresso': r.data_ingresso.strftime('%Y-%m-%d') if r.data_ingresso else None,
-            'status': r.status
+            'id_tripulante': r[0],
+            'id_nave': r[1],
+            'nome_tripulante': r[2],
+            'data_de_nascimento': r[3].strftime('%Y-%m-%d') if r[3] else None,
+            'genero': r[4],
+            'nacionalidade': r[5],
+            'competencia': r[6],
+            'data_ingresso': r[7].strftime('%Y-%m-%d') if r[7] else None,
+            'status': r[8]
         }
         for r in rows
     ]
@@ -254,16 +242,14 @@ def add_tripulante(id_nave):
                 application/json: {"message": "Tripulante adicionado"}
     """
     data = request.json
-    
     cursor.execute("""
         INSERT INTO Tripulantes (id_nave, nome_tripulante, data_de_nascimento, genero, nacionalidade, competencia, data_ingresso, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (id_nave, data['nome_tripulante'], data['data_de_nascimento'],
-          data['genero'], data['nacionalidade'], data['competencia'], data['data_ingresso'], data['status']))
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (id_nave, data['nome_tripulante'], data.get('data_de_nascimento'), data.get('genero'),
+          data.get('nacionalidade'), data.get('competencia'), data.get('data_ingresso'), data.get('status')))
     conn.commit()
     return jsonify({'message': 'Tripulante adicionado'})
 
-# ---- Missoes ----
 @app.route('/missoes/<int:id_nave>', methods=['GET'])
 def get_missoes(id_nave):
     """
@@ -280,25 +266,13 @@ def get_missoes(id_nave):
     responses:
         200:
             description: Lista de missões da nave
-            examples:
-                application/json: [
-                    {
-                        "id": 1,
-                        "nome": "Apollo 11",
-                        "data": "1969-07-16",
-                        "destino": "Lua",
-                        "duracao": 8,
-                        "resultado": "Sucesso",
-                        "descricao": "Primeiro pouso tripulado na Lua"
-                    }
-                ]
     """
-    cursor.execute("SELECT * FROM Missoes WHERE id_nave = ?", (id_nave,))
+    cursor.execute("SELECT * FROM Missoes WHERE id_nave = %s", (id_nave,))
     rows = cursor.fetchall()
     missoes = [
-        {'id': r.id_missao, 'nome': r.nome_missao, 'data': r.data_lancamento.strftime('%Y-%m-%d'),
-         'destino': r.destino, 'duracao': r.duracao_dias,
-         'resultado': r.resultado, 'descricao': r.descricao}
+        {'id': r[0], 'nome': r[2], 'data': r[3].strftime('%Y-%m-%d'),
+         'destino': r[4], 'duracao': r[5],
+         'resultado': r[6], 'descricao': r[7]}
         for r in rows
     ]
     return jsonify(missoes)
@@ -345,9 +319,9 @@ def add_missao(id_nave):
     data = request.json
     cursor.execute("""
         INSERT INTO Missoes (id_nave, nome_missao, data_lancamento, destino, duracao_dias, resultado, descricao)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (id_nave, data['nome'], data['data'], data['destino'],
-          data['duracao'], data['resultado'], data['descricao']))
+          data['duracao'], data['resultado'], data.get('descricao')))
     conn.commit()
     return jsonify({'message': 'Missão adicionada'})
 
@@ -370,12 +344,9 @@ def delete_missao(id):
             examples:
                 application/json: {"message": "Missão removida"}
     """
-    cursor.execute("DELETE FROM Missoes WHERE id_missao = ?", (id,))
+    cursor.execute("DELETE FROM Missoes WHERE id_missao = %s", (id,))
     conn.commit()
     return jsonify({'message': 'Missão removida'})
 
-# =============================
-# ========= RUN ===============
-# =============================
 if __name__ == '__main__':
     app.run(debug=True)
