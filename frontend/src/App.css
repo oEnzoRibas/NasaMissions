@@ -3,20 +3,12 @@
   font-family: sans-serif;
 }
 
-.container {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: flex-start;
-  margin-top: 20px;
-}
-
 .tripulante-form{
   display: flex;
   flex-direction: column;
   border: 1px solid #ccc;
   padding: 20px;
-  width: 30%;
+  width: 100%;
   border-radius: 10px;
   background-color: #f0f0f0;
 }
@@ -24,13 +16,16 @@
 .naves, .missoes, .tripulantes {
   display: flex;
   flex-direction: column;
+  text-align: center;
+  align-items: center;
   border: 1px solid #ccc;
   padding: 20px;
-  width: 40%;
   border-radius: 10px;
   background-color: #f0f0f0;
-
+  width: 100%;
 }
+
+
 
 li {
   display: flex;

@@ -148,39 +148,51 @@ function App() {
     axios.delete(`http://localhost:5000/missoes/${id}`)
       .then(() => selecionarNave(naveSelecionada));
   };
-
   return (
-    <div className="container my-5 bg-light p-4 rounded shadow text-dark " style={{ minHeight: '80vh' }}>
+    <div className="container my-5 bg-light p-4 rounded shadow text-dark" style={{ minHeight: '80vh' }}>
       <Header />
+
       <div className="row">
-        <NaveControl
-          naves={naves}
-          novaNave={novaNave}
-          setNovaNave={setNovaNave}
-          adicionarNave={adicionarNave}
-          removerNave={removerNave}
-          selecionarNave={selecionarNave}
-        />
-        <MissoesControl
-          naveSelecionada={naveSelecionada}
-          missoes={missoes}
-          novaMissao={novaMissao}
-          setNovaMissao={setNovaMissao}
-          adicionarMissao={adicionarMissao}
-          removerMissao={removerMissao}
-        />
-        <TripulantesControl
-          naveSelecionada={naveSelecionada}
-          tripulantes={tripulantes}
-          novoTripulante={novoTripulante}
-          setNovoTripulante={setNovoTripulante}
-          adicionarTripulante={adicionarTripulante}
-          removerTripulante={removerTripulante}
-        />
+        <div className="col-12 col-md-5">
+          <div className="naves">
+            <NaveControl
+              naves={naves}
+              novaNave={novaNave}
+              setNovaNave={setNovaNave}
+              adicionarNave={adicionarNave}
+              removerNave={removerNave}
+              selecionarNave={selecionarNave}
+            />
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="missoes col12 col-md-12">
+            <MissoesControl
+              naveSelecionada={naveSelecionada}
+              missoes={missoes}
+              novaMissao={novaMissao}
+              setNovaMissao={setNovaMissao}
+              adicionarMissao={adicionarMissao}
+              removerMissao={removerMissao}
+            />
+          </div>
+        </div>
+        <div className="col-md-3">
+          <div className="tripulantes">
+            <TripulantesControl
+              naveSelecionada={naveSelecionada}
+              tripulantes={tripulantes}
+              novoTripulante={novoTripulante}
+              setNovoTripulante={setNovoTripulante}
+              adicionarTripulante={adicionarTripulante}
+              removerTripulante={removerTripulante}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
-}
 
+}
 
 export default App;
