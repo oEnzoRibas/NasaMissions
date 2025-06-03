@@ -175,6 +175,7 @@ def delete_nave(id):
     conn.commit()
     return jsonify({'message': 'Nave removida'})
 
+# ---- Tripulantes ----
 @app.route('/tripulantes/<int:id_nave>', methods=['GET'])
 def get_tripulantes(id_nave):
     """
@@ -276,6 +277,28 @@ def add_tripulante(id_nave):
     conn.commit()
     return jsonify({'message': 'Tripulante adicionado'})
 
+@app.route('/tripulantes/<int:id>', methods=['DELETE'])
+def delete_tripulante(id):
+    """
+    Remove um tripulante pelo ID
+    ---
+    tags:
+        - Tripulantes
+    parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: ID do tripulante a ser removido
+    responses:
+        200:
+            description: Tripulante removido com sucesso
+            examples:
+                application/json: {"message": "Tripulante removido"}
+    """
+    cursor.execute("DELETE FROM Tripulantes WHERE id_tripulante = ?", (id,))
+    conn.commit()
+    return jsonify({'message': 'Tripulante removido'})
 # ---- Missoes ----
 @app.route('/missoes/<int:id_nave>', methods=['GET'])
 def get_missoes(id_nave):
