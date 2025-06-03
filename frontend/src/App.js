@@ -39,8 +39,6 @@ function App() {
     descricao: ''
   });
 
-
-
   // Carregar naves
   const carregarNaves = () => {
     axios.get('http://localhost:5000/naves')
@@ -116,6 +114,11 @@ function App() {
         if (naveSelecionada) {
           carregarTripulantes(naveSelecionada.id);
         }
+      })
+      .catch(error => {
+        console.error("Erro ao remover tripulante:", error);
+        console.error("Erro ao remover tripulante:", error.response);
+        alert("Erro ao remover tripulante.");
       });
   };
 
@@ -147,7 +150,7 @@ function App() {
   };
 
   return (
-    <div className="container my-5">
+    <div className="container my-5 bg-light p-4 rounded shadow text-dark " style={{ minHeight: '80vh' }}>
       <Header />
       <div className="row">
         <NaveControl

@@ -8,7 +8,10 @@ function NaveControl({ naves, novaNave, setNovaNave, adicionarNave, removerNave,
       <div className="card bg-dark text-white h-100">
         <div className="card-body">
           <h2 className="card-title">Naves</h2>
-          <ul className="list-group list-group-flush">
+          <ul
+            className="list-group list-group-flush"
+            style={{ maxHeight: '300px', overflowY: 'auto' }}
+          >
             {naves.map(n => (
               <li key={n.id} className="list-group-item d-flex justify-content-between align-items-center">
                 <span className="text-dark" onClick={() => selecionarNave(n)} style={{ cursor: 'pointer' }}>
