@@ -5,17 +5,31 @@
 
 .container {
   display: flex;
+  flex-direction: row;
   justify-content: space-around;
   align-items: flex-start;
   margin-top: 20px;
 }
 
-.naves, .missoes {
+.tripulante-form{
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  padding: 20px;
+  width: 30%;
+  border-radius: 10px;
+  background-color: #f0f0f0;
+}
+
+.naves, .missoes, .tripulantes {
+  display: flex;
+  flex-direction: column;
   border: 1px solid #ccc;
   padding: 20px;
   width: 40%;
   border-radius: 10px;
   background-color: #f0f0f0;
+
 }
 
 li {

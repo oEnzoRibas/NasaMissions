@@ -8,15 +8,15 @@ function App() {
   const [naveSelecionada, setNaveSelecionada] = useState(null);
   const [tripulantes, setTripulantes] = useState([]);
 
-const [novoTripulante, setNovoTripulante] = useState({
-  nome_tripulante: '',
-  data_de_nascimento: '',
-  genero: '',
-  nacionalidade: '',
-  competencia: '',
-  data_ingresso: '',
-  status: ''
-});
+  const [novoTripulante, setNovoTripulante] = useState({
+    nome_tripulante: '',
+    data_de_nascimento: '',
+    genero: '',
+    nacionalidade: '',
+    competencia: '',
+    data_ingresso: '',
+    status: ''
+  });
   const [novaNave, setNovaNave] = useState({
     nome: '',
     tipo: '',
@@ -34,7 +34,7 @@ const [novoTripulante, setNovoTripulante] = useState({
     descricao: ''
   });
 
-  
+
 
   // Carregar naves
   const carregarNaves = () => {
@@ -46,19 +46,19 @@ const [novoTripulante, setNovoTripulante] = useState({
     carregarNaves();
   }, []);
 
-// 🔥 Carregar tripulantes da nave selecionada
-const carregarTripulantes = (idNave) => {
-  axios.get(`http://localhost:5000/tripulantes/${idNave}`)
-    .then(res => setTripulantes(res.data));
-};
+  // 🔥 Carregar tripulantes da nave selecionada
+  const carregarTripulantes = (idNave) => {
+    axios.get(`http://localhost:5000/tripulantes/${idNave}`)
+      .then(res => setTripulantes(res.data));
+  };
 
-// 🔥 Ao selecionar uma nave, também carrega os tripulantes dela
-const selecionarNave = (nave) => {
-  setNaveSelecionada(nave);
-  axios.get(`http://localhost:5000/missoes/${nave.id}`)
-    .then(res => setMissoes(res.data));
-  carregarTripulantes(nave.id);
-};
+  // 🔥 Ao selecionar uma nave, também carrega os tripulantes dela
+  const selecionarNave = (nave) => {
+    setNaveSelecionada(nave);
+    axios.get(`http://localhost:5000/missoes/${nave.id}`)
+      .then(res => setMissoes(res.data));
+    carregarTripulantes(nave.id);
+  };
 
   // Adicionar nave
   const adicionarNave = (e) => {
@@ -162,68 +162,52 @@ const selecionarNave = (nave) => {
 
         {/* ===== Missões ===== */}
         <container>
-        <div className="missoes">
-          <h2>Missões {naveSelecionada ? `- ${naveSelecionada.nome}` : ''}</h2>
-          {naveSelecionada ? (
-            <>
-              <ul>
-                {missoes.map(m => (
-                  <li key={m.id}>
-                    <span>🌌 {m.nome} ➝ {m.destino} ({m.resultado})</span>
-                    <button onClick={() => removerMissao(m.id)}>❌</button>
-                  </li>
-                ))}
-              </ul>
+          <div className="missoes">
+            <h2>Missões {naveSelecionada ? `- ${naveSelecionada.nome}` : ''}</h2>
+            {naveSelecionada ? (
+              <>
+                <ul>
+                  {missoes.map(m => (
+                    <li key={m.id}>
+                      <span>🌌 {m.nome} ➝ {m.destino} ({m.resultado})</span>
+                      <button onClick={() => removerMissao(m.id)}>❌</button>
+                    </li>
+                  ))}
+                </ul>
 
-              {/* Formulário para adicionar missão */}
-              <h3>Adicionar Missão</h3>
-              <form onSubmit={adicionarMissao}>
-                <input placeholder="Nome" value={novaMissao.nome} onChange={e => setNovaMissao({ ...novaMissao, nome: e.target.value })} required />
-                <input type="date" placeholder="Data" value={novaMissao.data} onChange={e => setNovaMissao({ ...novaMissao, data: e.target.value })} />
-                <input placeholder="Destino" value={novaMissao.destino} onChange={e => setNovaMissao({ ...novaMissao, destino: e.target.value })} />
-                <input type="number" placeholder="Duração (dias)" value={novaMissao.duracao} onChange={e => setNovaMissao({ ...novaMissao, duracao: e.target.value })} />
-                <input placeholder="Resultado" value={novaMissao.resultado} onChange={e => setNovaMissao({ ...novaMissao, resultado: e.target.value })} />
-                <input placeholder="Descrição" value={novaMissao.descricao} onChange={e => setNovaMissao({ ...novaMissao, descricao: e.target.value })} />
-                <button type="submit">➕ Adicionar</button>
-              </form>
-            </>
-          ) : (
-            <p>Selecione uma nave para ver e adicionar suas missões.</p>
-          )}
-        </div>
-        <h3>Adicionar Tripulante</h3>
-          <form onSubmit={adicionarTripulante}>
-            <input placeholder="Nome"
-              value={novoTripulante.nome}
-              onChange={e => setNovoTripulante({ ...novoTripulante, nome: e.target.value })}
-              required />
-            <input type="date" placeholder="Data de Nascimento"
-              value={novoTripulante.dataNascimento}
-              onChange={e => setNovoTripulante({ ...novoTripulante, dataNascimento: e.target.value })}
-              required />
-            <input placeholder="Gênero"
-              value={novoTripulante.genero}
-              onChange={e => setNovoTripulante({ ...novoTripulante, genero: e.target.value })}
-              required />
-            <input placeholder="Nacionalidade"
-              value={novoTripulante.nacionalidade}
-              onChange={e => setNovoTripulante({ ...novoTripulante, nacionalidade: e.target.value })}
-              required />
-            <input placeholder="Competência"
-              value={novoTripulante.competencia}
-              onChange={e => setNovoTripulante({ ...novoTripulante, competencia: e.target.value })}
-              required />
-            <input type="date" placeholder="Data de Ingresso"
-              value={novoTripulante.dataIngresso}
-              onChange={e => setNovoTripulante({ ...novoTripulante, dataIngresso: e.target.value })}
-              required />
-            <input placeholder="Status"
-              value={novoTripulante.status}
-              onChange={e => setNovoTripulante({ ...novoTripulante, status: e.target.value })}
-              required />
-            <button type="submit">➕ Adicionar</button>
-          </form>
-          </container>
+                {/* Formulário para adicionar missão */}
+                <h3>Adicionar Missão</h3>
+                <form onSubmit={adicionarMissao}>
+                  <input placeholder="Nome" value={novaMissao.nome} onChange={e => setNovaMissao({ ...novaMissao, nome: e.target.value })} required />
+                  <input type="date" placeholder="Data" value={novaMissao.data} onChange={e => setNovaMissao({ ...novaMissao, data: e.target.value })} />
+                  <input placeholder="Destino" value={novaMissao.destino} onChange={e => setNovaMissao({ ...novaMissao, destino: e.target.value })} />
+                  <input type="number" placeholder="Duração (dias)" value={novaMissao.duracao} onChange={e => setNovaMissao({ ...novaMissao, duracao: e.target.value })} />
+                  <input placeholder="Resultado" value={novaMissao.resultado} onChange={e => setNovaMissao({ ...novaMissao, resultado: e.target.value })} />
+                  <input placeholder="Descrição" value={novaMissao.descricao} onChange={e => setNovaMissao({ ...novaMissao, descricao: e.target.value })} />
+                  <button type="submit">➕ Adicionar</button>
+                </form>
+              </>
+            ) : (
+              <p>Selecione uma nave para ver e adicionar suas missões.</p>
+            )}
+          </div>
+        </container>
+          <div className='tripulantes'>
+            <h3>Adicionar Tripulante</h3>
+            <form onSubmit={adicionarTripulante}>
+              <div className="tripulante-form">
+              <label>Nome</label>
+              <input placeholder="Nome" value={novoTripulante.nome} onChange={e => setNovoTripulante({ ...novoTripulante, nome: e.target.value })} required />
+              <input type="date" placeholder="Data de Nascimento" value={novoTripulante.data_de_nascimento} onChange={e => setNovoTripulante({ ...novoTripulante, data_de_nascimento: e.target.value })} required />
+              <input placeholder="Gênero" value={novoTripulante.genero} onChange={e => setNovoTripulante({ ...novoTripulante, genero: e.target.value })} required />
+              <input placeholder="Nacionalidade" value={novoTripulante.nacionalidade} onChange={e => setNovoTripulante({ ...novoTripulante, nacionalidade: e.target.value })} required />
+              <input placeholder="Competência" value={novoTripulante.competencia} onChange={e => setNovoTripulante({ ...novoTripulante, competencia: e.target.value })} required />
+              <input type="date" placeholder="Data de Ingresso" value={novoTripulante.data_ingresso} onChange={e => setNovoTripulante({ ...novoTripulante, data_ingresso: e.target.value })} required />
+              <input placeholder="Status" value={novoTripulante.status} onChange={e => setNovoTripulante({ ...novoTripulante, status: e.target.value })} required />
+              <button type="submit">➕ Adicionar</button>
+              </div>
+            </form>
+          </div>
 
       </div>
     </div>
