@@ -15,9 +15,9 @@ swagger = Swagger(app)
 # Conexão com PostgreSQL
 conn = psycopg2.connect(
     host="localhost",
-    database="nasa_missions",
+    database="Nasa_Missions",
     user="postgres",
-    password="123456"
+    password="sa123456"
 )
 cursor = conn.cursor()
 
