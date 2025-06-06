@@ -6,6 +6,7 @@
 .tripulante-form{
   display: flex;
   flex-direction: column;
+
   border: 1px solid #ccc;
   padding: 20px;
   width: 100%;
@@ -18,11 +19,13 @@
   flex-direction: column;
   text-align: center;
   align-items: center;
+
   border: 1px solid #ccc;
   padding: 20px;
   border-radius: 10px;
   background-color: #f0f0f0;
   width: 100%;
+
 }
 
 

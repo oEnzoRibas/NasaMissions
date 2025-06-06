@@ -32,6 +32,7 @@ function MissoesControl({ naveSelecionada, missoes, novaMissao, setNovaMissao, a
                       onClick={() => setMostrarFormulario(true)}
                     >
                       ➕ Adicionar Missão
+
                     </button>
                   )}
 

@@ -55,6 +55,7 @@ function TripulantesControl({
               <div className="d-flex gap-2 mt-2">
                           <button type="button" className="btn btn-secondary w-100" onClick={() => setMostrarFormulario(false)}>Cancelar</button>
                         </div>
+
             </form>
             </>
                   )}

@@ -164,6 +164,7 @@ def delete_nave(id):
     conn.commit()
     return jsonify({'message': 'Nave removida'})
 
+# ---- Tripulantes ----
 @app.route('/tripulantes/<int:id_nave>', methods=['GET'])
 def get_tripulantes(id_nave):
     """
