@@ -4,7 +4,8 @@ function NaveControl({ naves, novaNave, setNovaNave, adicionarNave, removerNave,
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   return (
-    <div className="col-sm-3">
+    <div className="col-sm-12">
+
       <div className="card bg-dark text-white h-100">
         <div className="card-body">
           <h2 className="card-title">Naves</h2>

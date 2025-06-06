@@ -52,6 +52,10 @@ function TripulantesControl({
               <input className="form-control my-1" placeholder="Data de Ingresso" type="date" value={novoTripulante.data_ingresso} onChange={e => setNovoTripulante({ ...novoTripulante, data_ingresso: e.target.value })} required />
               <input className="form-control my-1" placeholder="Status" value={novoTripulante.status} onChange={e => setNovoTripulante({ ...novoTripulante, status: e.target.value })} required />
               <button type="submit" className="btn btn-primary w-100 mt-2">➕ Adicionar</button>
+              <div className="d-flex gap-2 mt-2">
+                          <button type="button" className="btn btn-secondary w-100" onClick={() => setMostrarFormulario(false)}>Cancelar</button>
+                        </div>
+
             </form>
             </>
                   )}

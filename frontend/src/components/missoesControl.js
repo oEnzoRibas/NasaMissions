@@ -31,7 +31,8 @@ function MissoesControl({ naveSelecionada, missoes, novaMissao, setNovaMissao, a
                       className="btn btn-primary w-100 mt-4"
                       onClick={() => setMostrarFormulario(true)}
                     >
-                      ➕ Adicionar Nave
+                      ➕ Adicionar Missão
+
                     </button>
                   )}
 
