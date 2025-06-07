@@ -1,4 +1,4 @@
-    -- Criação do banco (execute no terminal ou pgAdmin, não no script SQL)
+-- Criação do banco (execute no terminal ou pgAdmin, não no script SQL)
     -- CREATE DATABASE nasa_missions;
 
     -- Depois conecte-se ao banco nasa_missions
@@ -183,3 +183,35 @@
         Missoes m
     JOIN 
         Tripulantes t ON m.id_nave = t.id_nave;
+
+-- Function to check nave dependencies
+CREATE OR REPLACE FUNCTION check_nave_dependencies()
+RETURNS TRIGGER AS $$
+DECLARE
+    mission_count INTEGER;
+    crew_count INTEGER;
+BEGIN
+    -- Count missions for the nave
+    SELECT COUNT(*) INTO mission_count
+    FROM missoes
+    WHERE id_nave = NEW.id_nave;
+
+    -- Count crew members for the nave
+    SELECT COUNT(*) INTO crew_count
+    FROM tripulantes
+    WHERE id_nave = NEW.id_nave;
+
+    -- Check if both counts are zero
+    IF mission_count = 0 AND crew_count = 0 THEN
+        RAISE EXCEPTION 'Nave must have at least one mission or crew member. Transaction rolled back.' USING ERRCODE = '23502';
+    END IF;
+
+    RETURN NEW; -- Standard for AFTER triggers
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to execute the check after insert on naves
+CREATE TRIGGER after_insert_nave_check_dependencies
+AFTER INSERT ON naves
+FOR EACH ROW
+EXECUTE FUNCTION check_nave_dependencies();
