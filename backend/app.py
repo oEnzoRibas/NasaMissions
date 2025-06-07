@@ -132,14 +132,33 @@ def add_nave():
             examples:
                 application/json: 
                     message: "Nave adicionada com sucesso"
+        400:
+            description: Erro de validação (e.g., nave sem dependências)
+        500:
+            description: Erro interno do servidor ou erro de banco de dados
     """
     data = request.json
-    cursor.execute("""
-        INSERT INTO Naves (nome, tipo, fabricante, ano_construcao, status)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (data['nome'], data['tipo'], data['fabricante'], data['ano'], data['status']))
-    conn.commit()
-    return jsonify({'message': 'Nave adicionada com sucesso'})
+    try:
+        cursor.execute("""
+            INSERT INTO Naves (nome, tipo, fabricante, ano_construcao, status)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (data['nome'], data['tipo'], data['fabricante'], data['ano'], data['status']))
+        conn.commit()
+        return jsonify({'message': 'Nave adicionada com sucesso'})
+    except psycopg2.Error as e:
+        conn.rollback()
+        if e.pgcode == '23502':
+            return jsonify({'error': 'Nave must have at least one mission or crew member.'}), 400
+        else:
+            # Log the error for server-side review
+            app.logger.error(f"Database error occurred: {e}")
+            app.logger.error(f"PGCODE: {e.pgcode}, PGERROR: {e.pgerror}")
+            return jsonify({'error': 'Database error occurred.'}), 500
+    except Exception as e:
+        # Log the error for server-side review
+        app.logger.error(f"An unexpected error occurred: {e}")
+        conn.rollback() # Also rollback here just in case the error happened after execute but before commit
+        return jsonify({'error': 'An unexpected server error occurred.'}), 500
 
 @app.route('/naves/<int:id>', methods=['DELETE'])
 def delete_nave(id):
