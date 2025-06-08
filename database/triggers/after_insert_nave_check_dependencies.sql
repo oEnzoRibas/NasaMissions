@@ -9,9 +9,17 @@ BEGIN
 END
 $$;
 
--- Create the new constraint trigger
-CREATE CONSTRAINT TRIGGER enforce_nave_dependencies
-AFTER INSERT OR UPDATE ON naves  -- Can add OR UPDATE if updates to 'naves' table could also violate the constraint
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION check_nave_dependencies_for_constraint();
+-- Create the new constraint trigger only if it does not exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'enforce_nave_dependencies'
+    ) THEN
+        CREATE CONSTRAINT TRIGGER enforce_nave_dependencies
+        AFTER INSERT OR UPDATE ON naves
+        DEFERRABLE INITIALLY DEFERRED
+        FOR EACH ROW
+        EXECUTE FUNCTION check_nave_dependencies_for_constraint();
+    END IF;
+END
+$$;

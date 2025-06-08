@@ -10,8 +10,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Constraint Trigger on tripulantes table
-CREATE CONSTRAINT TRIGGER tripulante_delete_orphans_nave
-AFTER DELETE ON tripulantes
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION tripulantes_delete_trigger_function();
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'tripulante_delete_orphans_nave'
+    ) THEN
+        CREATE CONSTRAINT TRIGGER tripulante_delete_orphans_nave
+        AFTER DELETE ON tripulantes
+        DEFERRABLE INITIALLY DEFERRED
+        FOR EACH ROW
+        EXECUTE FUNCTION tripulantes_delete_trigger_function();
+    END IF;
+END;
+$$;

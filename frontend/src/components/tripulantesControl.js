@@ -21,7 +21,7 @@ function TripulantesControl({
           <>
             <ul className="list-group list-group-flush">
               {tripulantes.map(t => (
-                <li key={t.id} className="list-group-item d-flex justify-content-between align-items-center">
+                <li key={t.id_tripulante} className="list-group-item d-flex justify-content-between align-items-center">
                   <span className="text-dark">🧑‍🚀 {t.nome_tripulante} - ({t.competencia}) - Status: {t.status}</span>
                   <button className="btn btn-danger btn-sm" onClick={() => removerTripulante(t.id_tripulante)}>❌</button>
                 </li>

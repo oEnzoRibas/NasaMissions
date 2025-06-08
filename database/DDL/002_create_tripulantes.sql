@@ -1,5 +1,5 @@
 -- Tabela Tripulantes
-    CREATE TABLE tripulantes (
+    CREATE TABLE IF NOT EXISTS tripulantes (
         id_tripulante SERIAL PRIMARY KEY,
         id_nave INT REFERENCES naves(id_nave) ON DELETE CASCADE,
         nome_tripulante VARCHAR(100) NOT NULL,

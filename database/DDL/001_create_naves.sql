@@ -1,5 +1,5 @@
 -- Tabela Naves
-    CREATE TABLE naves (
+    CREATE TABLE IF NOT EXISTS naves (
         id_nave SERIAL PRIMARY KEY,
         nome VARCHAR(100) NOT NULL,
         tipo VARCHAR(50) NOT NULL,

@@ -9,9 +9,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Constraint Trigger on missoes table
-CREATE CONSTRAINT TRIGGER missoe_delete_orphans_nave
-AFTER DELETE ON missoes
-DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW
-EXECUTE FUNCTION missoes_delete_trigger_function();
+-- Create the constraint trigger only if it does not already exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger
+        WHERE tgname = 'missoes_delete_orphans_nave'
+    ) THEN
+        EXECUTE $trg$
+            CREATE CONSTRAINT TRIGGER missoes_delete_orphans_nave
+            AFTER DELETE ON missoes
+            DEFERRABLE INITIALLY DEFERRED
+            FOR EACH ROW
+            EXECUTE FUNCTION missoes_delete_trigger_function();
+        $trg$;
+    END IF;
+END;
+$$;
