@@ -25,8 +25,6 @@ cursor = conn.cursor()
 
 print("Conectado ao banco:", conn.get_dsn_parameters())
 
-
-
 def criar_tabelas():
     app.logger.info("Starting database schema setup...")
     
@@ -54,7 +52,7 @@ def criar_tabelas():
     function_files = [
         os.path.join(functions_dir, "check_nave_dependencies_for_constraint.sql"), # Contains check_nave_dependencies_for_constraint
         os.path.join(functions_dir, "create_nave_with_dependencies.sql"),      # Contains create_nave_with_dependencies
-        os.path.join(functions_dir, "ensure_nave_has_minimum_dependencies.sql")            # Contains ensure_nave_has_minimum_dependencies
+        os.path.join(functions_dir, "ensure_nave_has_minimum_dependencies.sql"),           # Contains ensure_nave_has_minimum_dependencies
         os.path.join(functions_dir, "delete_nave_completely.sql") # Contains delete_nave_completely
     ]
     trigger_files = [
@@ -343,21 +341,24 @@ def delete_nave(id):
                 application/json: {"message": "Nave removida"}
     """
     try:
-        cursor.execute("DELETE FROM Naves WHERE id_nave = %s RETURNING id_nave", (id,))
+        # Check if the nave exists before attempting to delete
+        cursor.execute("SELECT 1 FROM naves WHERE id_nave = %s", (id,))
+        exists = cursor.fetchone()
+        if not exists:
+            return jsonify({'error': 'Nave não encontrada'}), 404
+
+        cursor.execute("SELECT delete_nave_completely(%s)", (id,))
         deleted = cursor.fetchone()
         conn.commit()
-        if deleted:
-            return jsonify({'message': 'Nave removida'})
-        else:
-            return jsonify({'error': 'Nave não encontrada'}), 404
+        return jsonify({'message': 'Nave removida com sucesso.'}), 200
     except psycopg2.Error as e:
         conn.rollback()
         app.logger.error(f"Database error occurred: {e}")
-        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+        return jsonify({'error': 'Erro no banco de dados.', 'detail': str(e)}), 500
     except Exception as e:
         conn.rollback()
         app.logger.error(f"Unexpected error occurred: {e}")
-        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
+        return jsonify({'error': 'Erro inesperado no servidor.', 'detail': str(e)}), 500
 
 # ---- Tripulantes ----
 

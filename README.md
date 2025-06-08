@@ -15,6 +15,8 @@ Projeto desenvolvido para a disciplina de Banco de Dados, utilizando SQL Server,
 
 ## 🛠️ Tecnologias Utilizadas
 
+- 📦 **Gerenciamento de dependências:** Utilize `pip install -r requirements.txt` para instalar as dependências do backend.
+
 - 🔹 **Backend:** Python + Flask + PyODBC
 - 🔸 **Frontend:** React + Axios
 - 🗄️ **Banco de Dados:** SQL Server
@@ -28,18 +30,18 @@ Projeto desenvolvido para a disciplina de Banco de Dados, utilizando SQL Server,
 
 - ✔ Python 3.x instalado
 - ✔ Node.js e npm instalados
-- ✔ SQL Server instalado e rodando
-- ✔ Driver ODBC para SQL Server ([Download aqui](https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server))
+- ✔ PostgresSQL instalado e rodando
 
 ---
 
-## 📄 Database Setup
+## 📄 Configuração do Banco de Dados
 
-This project requires a PostgreSQL database. For detailed instructions on how to set up the database, create the schema, and optionally seed data, please refer to the [Database Setup Guide](database/README.md).
+Este projeto requer um banco de dados PostgreSQL. Para instruções detalhadas sobre como configurar o banco, criar o schema e, opcionalmente, popular dados iniciais, consulte o [Guia de Configuração do Banco de Dados](database/README.md).
 
-Previously, this project used SQL Server. The original SQL Server script is no longer maintained but can be found in the project history if needed. The current setup uses PostgreSQL.
+Anteriormente, este projeto utilizava SQL Server. O script original para SQL Server não é mais mantido, mas pode ser encontrado no histórico do projeto, se necessário. A configuração atual utiliza PostgreSQL.
 
 ---
+
 
 ## 🐍 Backend (Python + Flask)
 ### 1. Instalação das Dependências
