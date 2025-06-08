@@ -31,25 +31,26 @@ It's recommended to use a PostgreSQL client like `psql` to execute these files. 
 
 ### a. Data Definition Language (DDL) - Create Schema
 These scripts create the table structures. Execute them in the numbered order.
-- `DDL/001_create_naves.sql`
-- `DDL/002_create_tripulantes.sql`
-- `DDL/003_create_missoes.sql`
-- `DDL/004_create_equipe_missoes.sql`
+- [DDL/001_create_naves.sql](DDL/001_create_naves.sql)
+- [DDL/002_create_tripulantes.sql](DDL/002_create_tripulantes.sql)
+- [DDL/003_create_missoes.sql](DDL/003_create_missoes.sql)
+- [DDL/004_create_equipe_missoes.sql](DDL/004_create_equipe_missoes.sql)
+
 
 ### b. Stored Functions
 These scripts create stored functions used by the database.
-- `functions/check_nave_dependencies.sql`
+- [functions/check_nave_dependencies.sql](functions/check_nave_dependencies.sql)
 
 ### c. Triggers
 These scripts create triggers that enforce database rules.
-- `triggers/after_insert_nave_check_dependencies.sql`
+- [triggers/after_insert_nave_check_dependencies.sql](triggers/after_insert_nave_check_dependencies.sql)
 
 ### d. Data Manipulation Language (DML) - Seed Data (Optional)
 These scripts populate the database with initial sample data. This step is optional if you prefer to start with an empty database (beyond the schema).
-- `DML/001_seed_naves.sql`
-- `DML/002_seed_missoes.sql`
-- `DML/003_seed_tripulantes.sql`
-- `DML/004_seed_equipe_missoes.sql`
+- [DML/001_seed_naves.sql](DML/001_seed_naves.sql)
+- [DML/002_seed_missoes.sql](DML/002_seed_missoes.sql)
+- [DML/003_seed_tripulantes.sql](DML/003_seed_tripulantes.sql)
+- [DML/004_seed_equipe_missoes.sql](DML/004_seed_equipe_missoes.sql)
 
 ## 5. Verify Setup
 After running the scripts, you can verify the tables and objects exist using your SQL client. For example, in `psql`:
