@@ -570,11 +570,11 @@ def delete_tripulante(id_nave, id_tripulante):
     except psycopg2.Error as e:
         conn.rollback()
         app.logger.error(f"Database error occurred: {e}")
-        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}, 500), 500
     except Exception as e:
         conn.rollback()
         app.logger.error(f"Unexpected error occurred: {e}")
-        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)},500), 500
 
 # ---- Missoes ----
 
@@ -748,10 +748,21 @@ def delete_missao(id_nave, id_missao):
             description: Missão removida com sucesso
             examples:
                 application/json: {"message": "Missão removida"}
+        
+        409:
+            description: Não é possível remover a missão porque a nave deve ter pelo menos uma missão ou tripulante.
+            examples:
+                application/json: {"error": "A nave deve ter pelo menos uma missão ou tripulante."}
+
         404:
             description: Missão não encontrada
             examples:
                 application/json: {"error": "Missão não encontrada"}
+        
+        500:
+            description: Erro interno do servidor ou erro de banco de dados não tratado especificamente.
+            examples:
+                application/json: {"error": "Database error occurred.", "detail": "Error details..."}
     """
     try:
         cursor.execute(
@@ -767,7 +778,7 @@ def delete_missao(id_nave, id_missao):
     except psycopg2.Error as e:
         conn.rollback()
         app.logger.error(f"Database error occurred: {e}")
-        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)},500), 500
     except Exception as e:
         conn.rollback()
         app.logger.error(f"Unexpected error occurred: {e}")
