@@ -55,6 +55,7 @@ def criar_tabelas():
         os.path.join(functions_dir, "check_nave_dependencies_for_constraint.sql"), # Contains check_nave_dependencies_for_constraint
         os.path.join(functions_dir, "create_nave_with_dependencies.sql"),      # Contains create_nave_with_dependencies
         os.path.join(functions_dir, "ensure_nave_has_minimum_dependencies.sql")            # Contains ensure_nave_has_minimum_dependencies
+        os.path.join(functions_dir, "delete_nave_completely.sql") # Contains delete_nave_completely
     ]
     trigger_files = [
         os.path.join(triggers_dir, "after_insert_nave_check_dependencies.sql"), # Uses check_nave_dependencies_for_constraint
