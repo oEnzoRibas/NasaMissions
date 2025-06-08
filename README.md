@@ -15,11 +15,11 @@ Projeto desenvolvido para a disciplina de Banco de Dados, utilizando SQL Server,
 
 ## 🛠️ Tecnologias Utilizadas
 
-- 📦 **Gerenciamento de dependências:** Utilize `pip install -r requirements.txt` para instalar as dependências do backend.
+- 📦 **Gerenciamento de dependências:** Utilize `pip install -r requirement.txt` para instalar as dependências do backend.
 
 - 🔹 **Backend:** Python + Flask + PyODBC
 - 🔸 **Frontend:** React + Axios
-- 🗄️ **Banco de Dados:** SQL Server
+- 🗄️ **Banco de Dados:** PostgresSQL
 - 🔗 API REST conectando Frontend e Backend
 
 ---
