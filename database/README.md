@@ -24,6 +24,10 @@ psql -U your_username -d nasa_missions
 Replace `your_username` with your actual PostgreSQL username.
 
 ## 4. Apply SQL Scripts
+
+#### Note on Automated Setup:
+The Flask backend application, when started, will attempt to automatically create or verify the database schema by executing the necessary SQL scripts in the correct order (DDL, Functions, Triggers). The manual steps outlined below are still valuable for understanding the process, for manual database setup if preferred, or for troubleshooting.
+
 After connecting to the `nasa_missions` database, run the SQL scripts located in this `database` directory in the following specific order.
 
 It's recommended to use a PostgreSQL client like `psql` to execute these files. For example:
