@@ -131,7 +131,7 @@ def get_naves():
     ---
     tags:
         - Naves
-    responses:
+    responses: 
         200:
             description: Lista de naves
             examples:
@@ -141,10 +141,24 @@ def get_naves():
                         "nome": "Saturno V",
                         "tipo": "Foguete",
                         "fabricante": "NASA",
-                        "ano": 1967,
+                        "ano_construcao": 1967,
                         "status": "Aposentada"
                     }
                 ]
+                
+        500:
+            description: Erro de banco de dados ou erro interno do servidor
+            examples:
+                application/json: {"error": "Database error occurred.", "detail": "Error details..."}
+        401:
+            description: Não autorizado
+            examples:
+                application/json: {"error": "Não autorizado"}
+        404:
+            description: Nenhuma nave encontrada
+            examples:
+                application/json: {"error": "Nenhuma nave encontrada"}
+
     """
     try:
       cursor.execute("SELECT * FROM naves")
