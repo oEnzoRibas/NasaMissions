@@ -45,8 +45,8 @@ def criar_tabelas():
     ddl_files = [
         os.path.join(ddl_dir, "001_create_naves.sql"),
         os.path.join(ddl_dir, "002_create_tripulantes.sql"),
-        os.path.join(ddl_dir, "003_create_missoes.sql"),
-        os.path.join(ddl_dir, "004_create_equipe_missoes.sql")
+        os.path.join(ddl_dir, "003_create_missoes.sql")
+        #os.path.join(ddl_dir, "004_create_equipe_missoes.sql")
     ]
     # Corrected function file name based on previous steps
     function_files = [
@@ -117,11 +117,12 @@ def criar_tabelas():
         except Exception as rb_err:
             app.logger.error(f"Rollback attempt failed after schema setup error: {rb_err}")
 
-
 criar_tabelas()
 # # ... rest of the routes ...
 
 # ===== ROTAS API =====
+
+# ---- Naves ----
 
 @app.route('/naves', methods=['GET'])
 def get_naves():
@@ -130,7 +131,7 @@ def get_naves():
     ---
     tags:
         - Naves
-    responses:
+    responses: 
         200:
             description: Lista de naves
             examples:
@@ -140,10 +141,24 @@ def get_naves():
                         "nome": "Saturno V",
                         "tipo": "Foguete",
                         "fabricante": "NASA",
-                        "ano": 1967,
+                        "ano_construcao": 1967,
                         "status": "Aposentada"
                     }
                 ]
+                
+        500:
+            description: Erro de banco de dados ou erro interno do servidor
+            examples:
+                application/json: {"error": "Database error occurred.", "detail": "Error details..."}
+        401:
+            description: Não autorizado
+            examples:
+                application/json: {"error": "Não autorizado"}
+        404:
+            description: Nenhuma nave encontrada
+            examples:
+                application/json: {"error": "Nenhuma nave encontrada"}
+
     """
     try:
       cursor.execute("SELECT * FROM naves")
@@ -161,6 +176,56 @@ def get_naves():
         app.logger.error(f"Diagnostics: {e.diag}")
         return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
 
+@app.route('/naves/<int:id>', methods=['GET'])
+def get_nave(id):
+    """
+    Obtém os detalhes de uma nave pelo ID
+    ---
+    tags:
+        - Naves
+    parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: ID da nave a ser buscada
+    responses:
+        200:
+            description: Detalhes da nave
+            examples:
+                application/json: {
+                    "id_nave": 1,
+                    "nome": "Saturno V",
+                    "tipo": "Foguete",
+                    "fabricante": "NASA",
+                    "ano_construcao": 1967,
+                    "status": "Aposentada"
+                }
+        404:
+            description: Nave não encontrada
+            examples:
+                application/json: {"error": "Nave não encontrada"}
+    """
+    try:
+        cursor.execute("SELECT * FROM naves WHERE id_nave = %s", (id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Nave não encontrada'}), 404
+
+        nave = {
+            'id_nave': row[0],
+            'nome': row[1],
+            'tipo': row[2],
+            'fabricante': row[3],
+            'ano_construcao': row[4],
+            'status': row[5]
+        }
+        return jsonify(nave), 200
+    except psycopg2.Error as e:
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+
+        
 @app.route('/naves', methods=['POST'])
 def add_nave():
     """
