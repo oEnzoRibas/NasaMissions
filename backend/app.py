@@ -4,6 +4,7 @@ from flasgger import Swagger
 from datetime import datetime
 import psycopg2
 import json
+import os
 
 app = Flask(__name__)
 app.config['SWAGGER'] = {
@@ -25,53 +26,101 @@ cursor = conn.cursor()
 print("Conectado ao banco:", conn.get_dsn_parameters())
 
 
+
 def criar_tabelas():
+    app.logger.info("Starting database schema setup...")
+    
+    # Define paths assuming execution from project root where 'database' is a top-level dir
+    # If app.py is in 'backend/', adjust base_db_path: e.g., os.path.join("..", "database")
+    # For this project structure, app.py is in backend/, so paths need adjustment.
+    # Let's assume the script is run from the project root for now, or paths are adjusted.
+    # If running `flask run` from project root, and app.py is in `backend`, then `database` is sibling to `backend`.
+    # Thus, `../database` from `app.py`'s perspective, or `database` if CWD is project root.
+    # The `open()` call will be relative to CWD. If Flask CLI sets CWD to project root, "database" is fine.
+    # Let's assume CWD is project root when running the Flask app.
+    base_db_path =  os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'database'))
+    ddl_dir = os.path.join(base_db_path, "DDL")
+    functions_dir = os.path.join(base_db_path, "functions")
+    triggers_dir = os.path.join(base_db_path, "triggers")
+
+    # Define file lists in execution order
+    ddl_files = [
+        os.path.join(ddl_dir, "001_create_naves.sql"),
+        os.path.join(ddl_dir, "002_create_tripulantes.sql"),
+        os.path.join(ddl_dir, "003_create_missoes.sql"),
+        os.path.join(ddl_dir, "004_create_equipe_missoes.sql")
+    ]
+    # Corrected function file name based on previous steps
+    function_files = [
+        os.path.join(functions_dir, "check_nave_dependencies_for_constraint.sql"), # Contains check_nave_dependencies_for_constraint
+        os.path.join(functions_dir, "create_nave_with_dependencies.sql"),      # Contains create_nave_with_dependencies
+        os.path.join(functions_dir, "ensure_nave_has_minimum_dependencies.sql")            # Contains ensure_nave_has_minimum_dependencies
+    ]
+    trigger_files = [
+        os.path.join(triggers_dir, "after_insert_nave_check_dependencies.sql"), # Uses check_nave_dependencies_for_constraint
+        os.path.join(triggers_dir, "manage_missoes_deletes.sql"),          # Uses ensure_nave_has_minimum_dependencies
+        os.path.join(triggers_dir, "manage_tripulantes_deletes.sql")       # Uses ensure_nave_has_minimum_dependencies
+    ]
+
+    all_sql_files = ddl_files + function_files + trigger_files
+
     try:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Naves (
-                id_nave SERIAL PRIMARY KEY,
-                nome VARCHAR(100) NOT NULL,
-                tipo VARCHAR(50) NOT NULL,
-                fabricante VARCHAR(100) NOT NULL,
-                ano_construcao INT NOT NULL,
-                status VARCHAR(30) NOT NULL
-            );
-        ''')
+        for filepath in all_sql_files:
+            # Check if path exists before trying to open, helpful for debugging path issues
+            if not os.path.exists(filepath):
+                app.logger.error(f"SQL file not found: {filepath}. Current CWD: {os.getcwd()}")
+                # If running from 'backend' dir, path should be e.g. '../database/DDL/001_create_naves.sql'
+                # Trying adjusted path assuming app.py is in 'backend'
+                adjusted_filepath = os.path.join("..", filepath)
+                if not os.path.exists(adjusted_filepath):
+                    app.logger.error(f"Adjusted SQL file path also not found: {adjusted_filepath}")
+                    raise FileNotFoundError(f"SQL file {filepath} (or {adjusted_filepath}) not found.")
+                else:
+                    filepath = adjusted_filepath # Use adjusted path
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Missoes (
-                id_missao SERIAL PRIMARY KEY,
-                id_nave INT REFERENCES Naves(id_nave) ON DELETE CASCADE,
-                nome_missao VARCHAR(100) NOT NULL,
-                data_lancamento DATE NOT NULL,
-                destino VARCHAR(100) NOT NULL,
-                duracao_dias INT NOT NULL,
-                resultado VARCHAR(50) NOT NULL,
-                descricao VARCHAR(255)
-            );
-        ''')
+            app.logger.info(f"Processing SQL file: {filepath}")
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    sql_script = f.read()
+                
+                if sql_script.strip():
+                    # Split script by semicolon only if it's not part of a DO $$...$$ block or FUNCTION/PROCEDURE body
+                    # For simplicity here, we assume each file is one logical block or psql can handle it.
+                    # PostgreSQL's cursor.execute() can often handle multi-statement strings if they are valid.
+                    # However, complex function/trigger definitions with internal semicolons are best kept in their own files.
+                    cursor.execute(sql_script)
+                    app.logger.info(f"Successfully executed {filepath}")
+                else:
+                    app.logger.info(f"Skipped empty SQL file: {filepath}")
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS Tripulantes (
-                id_tripulante SERIAL PRIMARY KEY,
-                id_nave INT REFERENCES Naves(id_nave) ON DELETE CASCADE,
-                nome_tripulante VARCHAR(100) NOT NULL,
-                data_de_nascimento DATE,
-                genero VARCHAR(20),
-                nacionalidade VARCHAR(50),
-                competencia VARCHAR(100),
-                data_ingresso DATE,
-                status VARCHAR(30)
-            );
-        ''')
+            except FileNotFoundError: # Should be caught by os.path.exists now, but as fallback.
+                app.logger.error(f"SQL file not found during open: {filepath}. CWD: {os.getcwd()}")
+                raise
+            except psycopg2.Error as db_err:
+                app.logger.error(f"Database error executing {filepath}: {db_err}")
+                app.logger.error(f"Error details: pgcode={db_err.pgcode}, pgerror={db_err.pgerror}")
+                conn.rollback() 
+                raise 
+            except Exception as e:
+                app.logger.error(f"General error reading/executing {filepath}: {e}")
+                raise 
 
         conn.commit()
-        print("🛠️ Tabelas criadas/verificadas com sucesso!")
+        app.logger.info("✅ Database schema setup completed successfully!")
 
     except Exception as e:
-        print("❌ Erro na criação das tabelas:", e)
+        app.logger.error(f"❌ Database schema setup failed: {e}")
+        # Ensure rollback if any re-raised exception wasn't a psycopg2.Error that already rolled back.
+        # However, conn.rollback() might fail if connection is already closed or in an unusable state.
+        try:
+            conn.rollback()
+            app.logger.info("Rolled back transaction due to overall schema setup failure.")
+        except Exception as rb_err:
+            app.logger.error(f"Rollback attempt failed after schema setup error: {rb_err}")
+
 
 criar_tabelas()
+# # ... rest of the routes ...
 
 # ===== ROTAS API =====
 
@@ -97,15 +146,21 @@ def get_naves():
                     }
                 ]
     """
-    cursor.execute("SELECT * FROM naves")
-    
-    rows = cursor.fetchall()
-    naves = [
-        {'id_nave': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano_construcao': r[4], 'status': r[5]}
-        for r in rows
-    ]
-
-    return jsonify(naves)
+    try:
+      cursor.execute("SELECT * FROM naves")
+      
+      rows = cursor.fetchall()
+      naves = [
+          {'id_nave': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano_construcao': r[4], 'status': r[5]}
+          for r in rows
+      ]
+      print("Naves:", naves)  # Debugging line to check fetched data
+      return jsonify(naves), 200
+    except psycopg2.Error as e:
+        app.logger.error(f"Database error occurred: {e}")
+        app.logger.error(f"PGCODE: {e.pgcode}, PGERROR: {e.pgerror}")
+        app.logger.error(f"Diagnostics: {e.diag}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
 
 @app.route('/naves', methods=['POST'])
 def add_nave():
@@ -206,23 +261,29 @@ def add_nave():
         500:
             description: Erro interno do servidor ou erro de banco de dados não tratado especificamente.
     """
-    data = request.json
-    
-    nome = data.get('nome')
-    tipo = data.get('tipo')
-    fabricante = data.get('fabricante')
-    ano_construcao = data.get('ano_construcao')
-    status_nave = data.get('status') # Renamed to avoid conflict with tripulante status
+    try:
+        data = request.json
 
-    if not all([nome, tipo, fabricante, ano_construcao, status_nave]):
-        return jsonify({'error': 'Missing required nave fields: nome, tipo, fabricante, ano_construcao, status'}), 400
+        nome = data.get('nome')
+        tipo = data.get('tipo')
+        fabricante = data.get('fabricante')
+        ano_construcao = data.get('ano_construcao')
+        status_nave = data.get('status')  # Renamed to avoid conflict with tripulante status
 
-    missoes_data = data.get('missoes', [])
-    tripulantes_data = data.get('tripulantes', [])
+        if not all([nome, tipo, fabricante, ano_construcao, status_nave]):
+            return jsonify({'error': 'Missing required nave fields: nome, tipo, fabricante, ano_construcao, status'}), 400
 
-    # Convert mission and tripulante data to JSON strings for PostgreSQL
-    missoes_json = json.dumps(missoes_data) if missoes_data else None
-    tripulantes_json = json.dumps(tripulantes_data) if tripulantes_data else None
+        missoes_data = data.get('missoes', [])
+        tripulantes_data = data.get('tripulantes', [])
+
+        # Convert mission and tripulante data to JSON strings for PostgreSQL
+        missoes_json = json.dumps(missoes_data) if missoes_data else None
+        tripulantes_json = json.dumps(tripulantes_data) if tripulantes_data else None
+
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Error parsing request data: {e}")
+        return jsonify({'error': 'Invalid input data.', 'detail': str(e)}), 400
 
     try:
         sql = """
@@ -238,7 +299,7 @@ def add_nave():
         ))
         new_nave_id = cursor.fetchone()[0]
         conn.commit()
-        return jsonify({'message': 'Nave adicionada com sucesso', 'id_nave': new_nave_id}), 201
+        return jsonify({'message': 'Nave adicionada com sucesso', 'id': new_nave_id}), 201
     except psycopg2.Error as e:
         conn.rollback()
         app.logger.error(f"Database error occurred: {e}")
@@ -280,11 +341,79 @@ def delete_nave(id):
             examples:
                 application/json: {"message": "Nave removida"}
     """
-    cursor.execute("DELETE FROM Naves WHERE id_nave = %s", (id,))
-    conn.commit()
-    return jsonify({'message': 'Nave removida'})
+    try:
+        cursor.execute("DELETE FROM Naves WHERE id_nave = %s RETURNING id_nave", (id,))
+        deleted = cursor.fetchone()
+        conn.commit()
+        if deleted:
+            return jsonify({'message': 'Nave removida'})
+        else:
+            return jsonify({'error': 'Nave não encontrada'}), 404
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 
 # ---- Tripulantes ----
+
+@app.route('/tripulantes', methods=['GET'])
+def get_tripulantes_all():
+    """
+    Lista todos os tripulantes
+    ---
+    tags:
+        - Tripulantes
+    responses:
+        200:
+            description: Lista de tripulantes
+            examples:
+                application/json: [
+                    {
+                        "id_tripulante": 1,
+                        "id_nave": 1,
+                        "nome_tripulante": "Jean-Luc Picard",
+                        "data_de_nascimento": "2305-07-13",
+                        "genero": "Masculino",
+                        "nacionalidade": "Francês, Terra",
+                        "competencia": "Comandante",
+                        "data_ingresso": "2363-01-01",
+                        "status": "Ativo"
+                    }
+                ]
+    """
+    try:
+        cursor.execute("SELECT * FROM Tripulantes")
+        rows = cursor.fetchall()
+
+        tripulantes = [
+            {
+                'id_tripulante': r[0],
+                'id_nave': r[1],
+                'nome_tripulante': r[2],
+                'data_de_nascimento': r[3].isoformat() if r[3] else None,
+                'genero': r[4],
+                'nacionalidade': r[5],
+                'competencia': r[6],
+                'data_ingresso': r[7].isoformat() if r[7] else None,
+                'status': r[8]
+            }
+            for r in rows
+        ]
+
+        return jsonify(tripulantes)
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
+
 @app.route('/tripulantes/<int:id_nave>', methods=['GET'])
 def get_tripulantes(id_nave):
     """
@@ -302,23 +431,32 @@ def get_tripulantes(id_nave):
         200:
             description: Lista de tripulantes da nave
     """
-    cursor.execute("SELECT * FROM Tripulantes WHERE id_nave = %s", (id_nave,))
-    rows = cursor.fetchall()
-    tripulantes = [
-        {
-            'id_tripulante': r[0],
-            'id_nave': r[1],
-            'nome_tripulante': r[2],
-            'data_de_nascimento': r[3].strftime('%Y-%m-%d') if r[3] else None,
-            'genero': r[4],
-            'nacionalidade': r[5],
-            'competencia': r[6],
-            'data_ingresso': r[7].strftime('%Y-%m-%d') if r[7] else None,
-            'status': r[8]
-        }
-        for r in rows
-    ]
-    return jsonify(tripulantes)
+    try:
+        cursor.execute("SELECT * FROM Tripulantes WHERE id_nave = %s", (id_nave,))
+        rows = cursor.fetchall()
+        tripulantes = [
+            {
+                'id_tripulante': r[0],
+                'id_nave': r[1],
+                'nome_tripulante': r[2],
+                'data_de_nascimento': r[3].strftime('%Y-%m-%d') if r[3] else None,
+                'genero': r[4],
+                'nacionalidade': r[5],
+                'competencia': r[6],
+                'data_ingresso': r[7].strftime('%Y-%m-%d') if r[7] else None,
+                'status': r[8]
+            }
+            for r in rows
+        ]
+        return jsonify(tripulantes)
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 
 @app.route('/tripulantes/<int:id_nave>', methods=['POST'])
 def add_tripulante(id_nave):
@@ -362,15 +500,131 @@ def add_tripulante(id_nave):
             examples:
                 application/json: {"message": "Tripulante adicionado"}
     """
-    data = request.json
-    cursor.execute("""
-        INSERT INTO Tripulantes (id_nave, nome_tripulante, data_de_nascimento, genero, nacionalidade, competencia, data_ingresso, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (id_nave, data['nome_tripulante'], data.get('data_de_nascimento'), data.get('genero'),
-          data.get('nacionalidade'), data.get('competencia'), data.get('data_ingresso'), data.get('status')))
-    conn.commit()
-    return jsonify({'message': 'Tripulante adicionado'})
+    try:
+        data = request.json
+        cursor.execute("""
+            INSERT INTO Tripulantes (id_nave, nome_tripulante, data_de_nascimento, genero, nacionalidade, competencia, data_ingresso, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id_nave,
+            data['nome_tripulante'],
+            data.get('data_de_nascimento'),
+            data.get('genero'),
+            data.get('nacionalidade'),
+            data.get('competencia'),
+            data.get('data_ingresso'),
+            data.get('status')
+        ))
+        conn.commit()
+        return jsonify({'message': 'Tripulante adicionado'})
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 
+@app.route('/tripulantes/<int:id_nave>/<int:id_tripulante>', methods=['DELETE'])
+def delete_tripulante(id_nave, id_tripulante):
+    """
+    Remove um tripulante pelo ID da nave e ID do tripulante
+    ---
+    tags:
+        - Tripulantes
+    parameters:
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave relacionada ao tripulante
+        - in: path
+          name: id_tripulante
+          type: integer
+          required: true
+          description: ID do tripulante a ser removido
+    responses:
+        200:
+            description: Tripulante removido com sucesso
+            examples:
+                application/json: {"message": "Tripulante removido"}
+        404:
+            description: Tripulante não encontrado
+            examples:
+                application/json: {"error": "Tripulante não encontrado"}
+    """
+    try:
+        cursor.execute(
+            "DELETE FROM Tripulantes WHERE id_nave = %s AND id_tripulante = %s RETURNING id_tripulante",
+            (id_nave, id_tripulante)
+        )
+        deleted = cursor.fetchone()
+        conn.commit()
+        if deleted:
+            return jsonify({'message': 'Tripulante removido'})
+        else:
+            return jsonify({'error': 'Tripulante não encontrado'}), 404
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
+
+# ---- Missoes ----
+
+@app.route('/missoes', methods=['GET'])
+def get_missoes_all():
+    """
+    Lista todas as missões
+    ---
+    tags:
+        - Missoes
+    responses:
+        200:
+            description: Lista de todas as missões
+            examples:
+                application/json: [
+                    {
+                        "id": 1,
+                        "id_nave": 1,
+                        "nome": "Missão Lunar",
+                        "data": "2023-01-01",
+                        "destino": "Lua",
+                        "duracao": 30,
+                        "resultado": "Sucesso",
+                        "descricao": "Primeira missão tripulada à Lua."
+                    }
+                ]
+    """
+    try:
+        cursor.execute("SELECT * FROM Missoes")
+        rows = cursor.fetchall()
+        missoes = [
+            {
+                'id_missao': r[0],
+                'id_nave': r[1],
+                'nome': r[2],
+                'data': r[3].strftime('%Y-%m-%d') if r[3] else None,
+                'destino': r[4],
+                'duracao': r[5],
+                'resultado': r[6],
+                'descricao': r[7]
+            }
+            for r in rows
+        ]
+        return jsonify(missoes)
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 @app.route('/missoes/<int:id_nave>', methods=['GET'])
 def get_missoes(id_nave):
     """
@@ -388,15 +642,22 @@ def get_missoes(id_nave):
         200:
             description: Lista de missões da nave
     """
-    cursor.execute("SELECT * FROM Missoes WHERE id_nave = %s", (id_nave,))
-    rows = cursor.fetchall()
-    missoes = [
-        {'id': r[0], 'nome': r[2], 'data': r[3].strftime('%Y-%m-%d'),
-         'destino': r[4], 'duracao': r[5],
-         'resultado': r[6], 'descricao': r[7]}
-        for r in rows
-    ]
-    return jsonify(missoes)
+    try:
+        cursor.execute("SELECT * FROM Missoes WHERE id_nave = %s", (id_nave,))
+        rows = cursor.fetchall()
+        missoes = [
+            {'id_missao': r[0], 'id_nave': r[1], 'nome': r[2], 'data': r[3].strftime('%Y-%m-%d'), 'destino': r[4], 'duracao': r[5], 'resultado': r[6], 'descricao': r[7]}
+            for r in rows
+        ]
+        return jsonify(missoes)
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 
 @app.route('/missoes/<int:id_nave>', methods=['POST'])
 def add_missao(id_nave):
@@ -437,37 +698,79 @@ def add_missao(id_nave):
             examples:
                 application/json: {"message": "Missão adicionada"}
     """
-    data = request.json
-    cursor.execute("""
-        INSERT INTO Missoes (id_nave, nome_missao, data_lancamento, destino, duracao_dias, resultado, descricao)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (id_nave, data['nome'], data['data'], data['destino'],
-          data['duracao'], data['resultado'], data.get('descricao')))
-    conn.commit()
-    return jsonify({'message': 'Missão adicionada'})
+    try:
+        data = request.json
+        cursor.execute("""
+            INSERT INTO Missoes (id_nave, nome_missao, data_lancamento, destino, duracao_dias, resultado, descricao)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            id_nave,
+            data['nome'],
+            data['data'],
+            data['destino'],
+            data['duracao'],
+            data['resultado'],
+            data.get('descricao')
+        ))
+        conn.commit()
+        return jsonify({'message': 'Missão adicionada'})
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
 
-@app.route('/missoes/<int:id>', methods=['DELETE'])
-def delete_missao(id):
+@app.route('/missoes/<int:id_nave>/<int:id_missao>', methods=['DELETE'])
+def delete_missao(id_nave, id_missao):
     """
-    Remove uma missão pelo ID
+    Remove uma missão pelo ID da nave e ID da missão
     ---
     tags:
         - Missoes
     parameters:
-    - in: path
-      name: id
-      type: integer
-      required: true
-      description: ID da missão a ser removida
+        - in: path
+          name: id_nave
+          type: integer
+          required: true
+          description: ID da nave relacionada à missão
+        - in: path
+          name: id_missao
+          type: integer
+          required: true
+          description: ID da missão a ser removida
     responses:
         200:
             description: Missão removida com sucesso
             examples:
                 application/json: {"message": "Missão removida"}
+        404:
+            description: Missão não encontrada
+            examples:
+                application/json: {"error": "Missão não encontrada"}
     """
-    cursor.execute("DELETE FROM Missoes WHERE id_missao = %s", (id,))
-    conn.commit()
-    return jsonify({'message': 'Missão removida'})
+    try:
+        cursor.execute(
+            "DELETE FROM Missoes WHERE id_nave = %s AND id_missao = %s RETURNING id_missao",
+            (id_nave, id_missao)
+        )
+        deleted = cursor.fetchone()
+        conn.commit()
+        if deleted:
+            return jsonify({'message': 'Missão removida'})
+        else:
+            return jsonify({'error': 'Missão não encontrada'}), 404
+    except psycopg2.Error as e:
+        conn.rollback()
+        app.logger.error(f"Database error occurred: {e}")
+        return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Unexpected error occurred: {e}")
+        return jsonify({'error': 'Unexpected server error occurred.', 'detail': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
