@@ -3,6 +3,7 @@ from flask_cors import CORS
 from flasgger import Swagger
 from datetime import datetime
 import psycopg2
+import json
 
 app = Flask(__name__)
 app.config['SWAGGER'] = {
@@ -15,11 +16,14 @@ swagger = Swagger(app)
 # Conexão com PostgreSQL
 conn = psycopg2.connect(
     host="localhost",
-    database="Nasa_Missions",
+    database="nasa_missions",
     user="postgres",
     password="sa123456"
 )
 cursor = conn.cursor()
+
+print("Conectado ao banco:", conn.get_dsn_parameters())
+
 
 def criar_tabelas():
     try:
@@ -84,7 +88,7 @@ def get_naves():
             examples:
                 application/json: [
                     {
-                        "id": 1,
+                        "id_nave": 1,
                         "nome": "Saturno V",
                         "tipo": "Foguete",
                         "fabricante": "NASA",
@@ -93,72 +97,169 @@ def get_naves():
                     }
                 ]
     """
-    cursor.execute("SELECT * FROM Naves")
+    cursor.execute("SELECT * FROM naves")
+    
     rows = cursor.fetchall()
     naves = [
-        {'id': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano': r[4], 'status': r[5]}
+        {'id_nave': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano_construcao': r[4], 'status': r[5]}
         for r in rows
     ]
+
     return jsonify(naves)
 
 @app.route('/naves', methods=['POST'])
 def add_nave():
     """
-    Adiciona uma nova nave
+    Adiciona uma nova nave com suas missões e/ou tripulantes.
+    A nave deve ter pelo menos uma missão ou um tripulante associado na criação.
     ---
-    tags:      
+    tags:
     - Naves
     parameters:
       - in: body
-        name: nave
-        description: Dados da nave a ser adicionada
+        name: body
+        description: Dados da nave e suas dependências (missões e/ou tripulantes)
         required: true
         schema:
           type: object
+          required:
+            - nome
+            - tipo
+            - fabricante
+            - ano_construcao
+            - status
           properties:
             nome:
               type: string
+              example: "Enterprise-D"
             tipo:
               type: string
+              example: "Exploradora"
             fabricante:
               type: string
-            ano:
+              example: "Starfleet"
+            ano_construcao:
               type: integer
+              example: 2363
             status:
               type: string
+              example: "Ativa"
+            missoes:
+              type: array
+              items:
+                type: object
+                properties:
+                  nome_missao: {type: string, example: "Explorar Sector Gama"}
+                  data_lancamento: {type: string, format: date, example: "2364-02-04"}
+                  destino: {type: string, example: "Sector Gama"}
+                  duracao_dias: {type: integer, example: 730}
+                  resultado: {type: string, example: "Em Andamento"}
+                  descricao: {type: string, example: "Missão de exploração de longa duração."}
+              nullable: true
+            tripulantes:
+              type: array
+              items:
+                type: object
+                properties:
+                  nome_tripulante: {type: string, example: "Jean-Luc Picard"}
+                  data_de_nascimento: {type: string, format: date, example: "2305-07-13"}
+                  genero: {type: string, example: "Masculino"}
+                  nacionalidade: {type: string, example: "Francês, Terra"}
+                  competencia: {type: string, example: "Comandante"}
+                  data_ingresso: {type: string, format: date, example: "2363-01-01"}
+                  status: {type: string, example: "Ativo"}
+              nullable: true
+          example:
+            nome: "USS Voyager"
+            tipo: "Intrepid-class"
+            fabricante: "Starfleet"
+            ano_construcao: 2371
+            status: "Ativa"
+            missoes:
+              - nome_missao: "Retorno ao Quadrante Alfa"
+                data_lancamento: "2371-01-01"
+                destino: "Quadrante Alfa"
+                duracao_dias: 25550 # approx 70 years
+                resultado: "Em Andamento"
+                descricao: "Perdida no Quadrante Delta, tentando retornar para casa."
+            tripulantes:
+              - nome_tripulante: "Kathryn Janeway"
+                data_de_nascimento: "2295-05-20"
+                genero: "Feminino"
+                nacionalidade: "Humana, Terra"
+                competencia: "Comandante"
+                data_ingresso: "2371-01-01"
+                status: "Ativa"
     responses:
-        200:
+        201:
             description: Nave adicionada com sucesso
             examples:
-                application/json: 
+                application/json:
                     message: "Nave adicionada com sucesso"
+                    id_nave: 123
         400:
-            description: Erro de validação (e.g., nave sem dependências)
+            description: Erro de validação. Pode ser devido à ausência de missões/tripulantes (pgcode P0001) ou violação de constraint (pgcode 23502 - fallback).
+            examples:
+                application/json:
+                    error: "A nave deve ser criada com pelo menos uma missão OU um tripulante."
+                    detail: "PGERROR detail..." 
         500:
-            description: Erro interno do servidor ou erro de banco de dados
+            description: Erro interno do servidor ou erro de banco de dados não tratado especificamente.
     """
     data = request.json
+    
+    nome = data.get('nome')
+    tipo = data.get('tipo')
+    fabricante = data.get('fabricante')
+    ano_construcao = data.get('ano_construcao')
+    status_nave = data.get('status') # Renamed to avoid conflict with tripulante status
+
+    if not all([nome, tipo, fabricante, ano_construcao, status_nave]):
+        return jsonify({'error': 'Missing required nave fields: nome, tipo, fabricante, ano_construcao, status'}), 400
+
+    missoes_data = data.get('missoes', [])
+    tripulantes_data = data.get('tripulantes', [])
+
+    # Convert mission and tripulante data to JSON strings for PostgreSQL
+    missoes_json = json.dumps(missoes_data) if missoes_data else None
+    tripulantes_json = json.dumps(tripulantes_data) if tripulantes_data else None
+
     try:
-        cursor.execute("""
-            INSERT INTO Naves (nome, tipo, fabricante, ano_construcao, status)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (data['nome'], data['tipo'], data['fabricante'], data['ano'], data['status']))
+        sql = """
+            SELECT create_nave_with_dependencies(
+                %s, %s, %s, %s, %s, 
+                %s::jsonb, %s::jsonb
+            );
+        """
+        cursor.execute(sql, (
+            nome, tipo, fabricante, ano_construcao, status_nave,
+            missoes_json,
+            tripulantes_json
+        ))
+        new_nave_id = cursor.fetchone()[0]
         conn.commit()
-        return jsonify({'message': 'Nave adicionada com sucesso'})
+        return jsonify({'message': 'Nave adicionada com sucesso', 'id_nave': new_nave_id}), 201
     except psycopg2.Error as e:
         conn.rollback()
-        if e.pgcode == '23502':
-            return jsonify({'error': 'Nave must have at least one mission or crew member.'}), 400
+        app.logger.error(f"Database error occurred: {e}")
+        app.logger.error(f"PGCODE: {e.pgcode}, PGERROR: {e.pgerror}")
+        app.logger.error(f"Diagnostics: {e.diag}")
+
+        if e.pgcode == 'P0001': # Custom error from our stored function
+            # The actual user-facing error message from PostgreSQL for RAISE EXCEPTION
+            # is often in e.pgerror or e.diag.message_primary.
+            user_message = e.pgerror.split('ERROR:  ')[-1].split('\nHINT:')[0] if e.pgerror else 'A nave deve ser criada com pelo menos uma missão OU um tripulante.'
+            return jsonify({'error': user_message}), 400
+        elif e.pgcode == '23502': # Fallback for constraint trigger if function logic missed something
+             # This is the not_null_violation from the deferred trigger
+            user_message = e.pgerror.split('ERROR:  ')[-1].split('\nDETAIL:')[0] if e.pgerror else 'Nave must have at least one mission or crew member.'
+            return jsonify({'error': user_message}), 400
         else:
-            # Log the error for server-side review
-            app.logger.error(f"Database error occurred: {e}")
-            app.logger.error(f"PGCODE: {e.pgcode}, PGERROR: {e.pgerror}")
-            return jsonify({'error': 'Database error occurred.'}), 500
+            return jsonify({'error': 'Database error occurred.', 'detail': str(e)}), 500
     except Exception as e:
-        # Log the error for server-side review
+        conn.rollback()
         app.logger.error(f"An unexpected error occurred: {e}")
-        conn.rollback() # Also rollback here just in case the error happened after execute but before commit
-        return jsonify({'error': 'An unexpected server error occurred.'}), 500
+        return jsonify({'error': 'An unexpected server error occurred.', 'detail': str(e)}), 500
 
 @app.route('/naves/<int:id>', methods=['DELETE'])
 def delete_nave(id):

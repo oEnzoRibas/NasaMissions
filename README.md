@@ -33,12 +33,11 @@ Projeto desenvolvido para a disciplina de Banco de Dados, utilizando SQL Server,
 
 ---
 
-## 📄 Configurando o Banco de Dados (SQL Server)
+## 📄 Database Setup
 
-1. Abra o **SQL Server Management Studio**.
-2. Execute o script abaixo para criar o banco e as tabelas:
+This project requires a PostgreSQL database. For detailed instructions on how to set up the database, create the schema, and optionally seed data, please refer to the [Database Setup Guide](database/README.md).
 
-[👉 Script SQL completo aqui](./database/nasaMissions_script.sql)  
+Previously, this project used SQL Server. The original SQL Server script is no longer maintained but can be found in the project history if needed. The current setup uses PostgreSQL.
 
 ---
 
