@@ -51,6 +51,11 @@ cd backend
 pip install -r requirements.txt
 ```
 
+> pip install flask_sqlalchemy
+> pip install flask_swagger_ui
+> pip install pyodbc
+> pip install flask_cors
+
 ### 🔸 Executando o backend:
 ```bash
 cd backend

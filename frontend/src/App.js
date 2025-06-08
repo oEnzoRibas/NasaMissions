@@ -35,10 +35,10 @@ function App() {
   });
 
   const [novaMissao, setNovaMissao] = useState({
-    nome: '',
-    data: '',
+    nome_missao: '',
+    data_lancamento: '',
     destino: '',
-    duracao: '',
+    duracao_dias: '',
     resultado: '',
     descricao: ''
   });
@@ -231,23 +231,22 @@ function App() {
       return;
     }
     const payload = {
-      ...novaMissao,
-      nome_missao: novaMissao.nome,
-      data_lancamento: novaMissao.data,
-      duracao_dias: novaMissao.duracao
+      nome: novaMissao.nome_missao,
+      data: novaMissao.data_lancamento,
+      destino: novaMissao.destino,
+      duracao: novaMissao.duracao_dias,
+      resultado: novaMissao.resultado,
+      descricao: novaMissao.descricao
     };
-    delete payload.nome;
-    delete payload.data;
-    delete payload.duracao;
     setApiError(null);
     axios.post(`http://localhost:5000/missoes/${naveSelecionada.id_nave}`, payload)
       .then(() => {
         selecionarNave(naveSelecionada); // This will also clear apiError
         setNovaMissao({
-          nome: '',
-          data: '',
+          nome_missao: '',
+          data_lancamento: '',
           destino: '',
-          duracao: '',
+          duracao_dias: '',
           resultado: '',
           descricao: ''
         });
