@@ -17,11 +17,11 @@ function MissoesControl({ naveSelecionada, missoes, novaMissao, setNovaMissao, a
                 <>
                   <ul className="list-group list-group-flush">
                     {missoes.map(m => (
-                      <li key={m.id} className="list-group-item d-flex justify-content-between align-items-center">
+                      <li key={m.id_missao} className="list-group-item d-flex justify-content-between align-items-center">
                         <span className="text-dark">
                           🌌 {m.nome} ➝ {m.destino} ({m.resultado})
                         </span>
-                        <button className="btn btn-danger btn-sm" onClick={() => removerMissao(m.id)}>❌</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => removerMissao(m.id_missao)}>❌</button>
                       </li>
                     ))}
                   </ul>
