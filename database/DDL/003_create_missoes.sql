@@ -1,5 +1,5 @@
 -- Tabela Missoes
-    CREATE TABLE missoes (
+    CREATE TABLE IF NOT EXISTS missoes (
         id_missao SERIAL PRIMARY KEY,
         id_nave INT REFERENCES naves(id_nave) ON DELETE CASCADE,
         nome_missao VARCHAR(100) NOT NULL,
