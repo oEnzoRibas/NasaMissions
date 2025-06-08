@@ -16,11 +16,14 @@ swagger = Swagger(app)
 # Conexão com PostgreSQL
 conn = psycopg2.connect(
     host="localhost",
-    database="Nasa_Missions",
+    database="nasa_missions",
     user="postgres",
     password="sa123456"
 )
 cursor = conn.cursor()
+
+print("Conectado ao banco:", conn.get_dsn_parameters())
+
 
 def criar_tabelas():
     try:
@@ -85,7 +88,7 @@ def get_naves():
             examples:
                 application/json: [
                     {
-                        "id": 1,
+                        "id_nave": 1,
                         "nome": "Saturno V",
                         "tipo": "Foguete",
                         "fabricante": "NASA",
@@ -94,12 +97,14 @@ def get_naves():
                     }
                 ]
     """
-    cursor.execute("SELECT * FROM Naves")
+    cursor.execute("SELECT * FROM naves")
+    
     rows = cursor.fetchall()
     naves = [
-        {'id': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano': r[4], 'status': r[5]}
+        {'id_nave': r[0], 'nome': r[1], 'tipo': r[2], 'fabricante': r[3], 'ano_construcao': r[4], 'status': r[5]}
         for r in rows
     ]
+
     return jsonify(naves)
 
 @app.route('/naves', methods=['POST'])
