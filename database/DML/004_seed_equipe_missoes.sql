@@ -1,10 +1,10 @@
 -- Popular EquipeMissao associando cada tripulante à missão correspondente pela nave
     INSERT INTO Equipe_Missoes (id_missao, id_tripulante, funcao_na_missao)
-    SELECT
+    SELECT 
         m.id_missao,
         t.id_tripulante,
         t.competencia
-    FROM
+    FROM 
         Missoes m
-    JOIN
+    JOIN 
         Tripulantes t ON m.id_nave = t.id_nave;

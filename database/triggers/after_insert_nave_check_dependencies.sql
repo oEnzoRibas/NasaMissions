@@ -11,7 +11,7 @@ $$;
 
 -- Create the new constraint trigger
 CREATE CONSTRAINT TRIGGER enforce_nave_dependencies
-AFTER INSERT ON naves  -- Can add OR UPDATE if updates to 'naves' table could also violate the constraint
+AFTER INSERT OR UPDATE ON naves  -- Can add OR UPDATE if updates to 'naves' table could also violate the constraint
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 EXECUTE FUNCTION check_nave_dependencies_for_constraint();
