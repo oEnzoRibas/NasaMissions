@@ -1,3 +1,19 @@
+/*
+    Function: check_nave_dependencies_for_constraint
+
+    Description:
+    This trigger function ensures referential integrity for the 'nave' (spaceship) entity by verifying that any newly inserted or updated spaceship (nave) has at least one associated mission or crew member. 
+    If both the number of missions and crew members associated with the spaceship are zero, the function raises an exception and rolls back the transaction.
+
+    Returns:
+    TRIGGER - Returns the NEW record if the constraint is satisfied; otherwise, raises an exception.
+
+    Raises:
+    - Exception with SQLSTATE '23502' if the spaceship does not have at least one mission or crew member.
+
+    Usage:
+    Intended to be used as a trigger on insert or update operations on the 'nave' table to enforce business rules regarding spaceship dependencies.
+*/
 CREATE OR REPLACE FUNCTION check_nave_dependencies_for_constraint()
 RETURNS TRIGGER AS $$
 DECLARE
