@@ -19,7 +19,7 @@ conn = psycopg2.connect(
     host="localhost",
     database="nasa_missions",
     user="postgres",
-    password="sa123456"
+    password="postgres"
 )
 cursor = conn.cursor()
 
